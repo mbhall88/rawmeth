@@ -52,6 +52,7 @@ class Sample(object):
             )
 
         self.file_paths = glob.glob(os.path.join(self.path, '*.fast5'))[:limit]
+
         if not self.file_paths:
             raise Exception(
                 "No '.fast5' files could be found in {}.".format(self.path)
@@ -82,7 +83,7 @@ class Sample(object):
 
         """
         # make sure motif is of class Motif and is in list form.
-        if type(motifs) == str:
+        if isinstance(motifs, str):
             motifs = [Motif(motifs)]
         else:
             motifs = [Motif(m) for m in motifs]
@@ -126,6 +127,7 @@ class Fast5(object):
                 if self._is_corrected():
                     self.f.visititems(self.extract_fast5_info)
                     self.empty = False
+
         except IOError as e:
             msg = "Unable to open file (File signature not found)"
             if msg == e.message:

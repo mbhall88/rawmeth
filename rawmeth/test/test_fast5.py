@@ -1,5 +1,5 @@
 import pytest
-from rawmeth.fast5 import Motif, Fast5
+from rawmeth.fast5 import Motif, Fast5, Sample
 
 
 @pytest.fixture
@@ -23,9 +23,32 @@ def ch100():
     return Fast5('rawmeth/test/data/'
                  'C4_watermang_22032017_75675_ch100_read38_strand.fast5')
 
+
+@pytest.fixture
+def ch269():
+    return Fast5('rawmeth/test/data/'
+                 'C4_watermang_22032017_75675_ch269_read67_strand.fast5')
+
+
 @pytest.fixture
 def empty_fast5():
+    """Loads in an empty test fast5 file for testing.
+
+    Returns:
+        Fast5: A Fast5 class version of an empty file.
+    """
     return Fast5('rawmeth/test/data/empty.fast5')
+
+
+@pytest.fixture
+def sample():
+    """Loads in a Sample class of fast5 files contained in the test data dir.
+
+    Returns:
+        Sample: A Sample class of the fast5 files in test data dir.
+    """
+    return Sample('rawmeth/test/data')
+
 
 ############################################################################
 # Motif tests
@@ -123,7 +146,7 @@ class TestFast5:
         assert ch100.name == name
         assert empty_fast5.name == 'empty.fast5'
 
-    def test_fast5_empty(self, ch100, empty_fast5):
+    def test_fast5_empty(self, ch100, empty_fast5, ch269):
         """Tests files are adjudged empty correctly.
 
         Args:
@@ -134,6 +157,7 @@ class TestFast5:
         """
         assert empty_fast5.empty
         assert not ch100.empty
+        assert ch269.empty
 
     def test_fast5_read_aln(self, ch100):
         """Tests read_aln from nanoraw is read in correctly.
@@ -234,9 +258,39 @@ class TestFast5:
         assert df['pos'][66] == str(7)
 
     def test_fast5_get_motif_lengths(self, ch100):
+        """Tests that the dataframe produced by get_motif_lengths is correct.
+
+        Args:
+            ch100 (Fast5): A Fast5 class structure form of the test file
+            C4_watermang_22032017_75675_ch100_read38_strand.fast5
+
+        """
         motif = Motif('GATC')
         df = ch100.get_motif_lengths(motif)
         assert df.shape == (92, 4)
         assert df['motif'][6] == motif
         assert df['length'].sum() == 756
         assert df['base'][50] == 'T'
+
+
+############################################################################
+# Fast5 tests
+
+
+class TestSample:
+
+    def test_sample_init(self, sample):
+        """Tests that the Sample class initialises correctly.
+
+        Args:
+            sample (Sample): An instance of a Sample.
+        """
+        assert len(sample.files) == 2
+        assert sample.basename == 'data'
+        assert len(sample.file_paths) == 4
+
+    def test_sample_get_motif_signal(self, sample, gatc):
+        df = sample.get_motif_signal(gatc)
+        assert df.shape == (1589, 6)
+        assert df['signal'].sum() == 759320
+        assert df['signal_norm'].sum() == -502.37735849056594
