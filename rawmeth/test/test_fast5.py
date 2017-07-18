@@ -174,7 +174,9 @@ class TestFast5:
         """Tests that the motif index extraction is working properly.
 
         Args:
-            ch100 ():
+            ch100 (Fast5): A Fast5 class structure form of the test file
+            C4_watermang_22032017_75675_ch100_read38_strand.fast5
+
         """
         assert ch100.motif_indices('GATC') == [(692, 696), (701, 705),
                                                (749, 753), (866, 870),
@@ -190,4 +192,51 @@ class TestFast5:
                                                (4386, 4390)]
         assert ch100.motif_indices('TCAACGAAATC') == [(14, 25)]
 
-    # TODO: finish test cases
+    def test_fast5_extract_motif_signal(self, ch100):
+        """Tests that the Fast5 class is extracting to raw signal associated
+        with a motif correctly from a tuple of indices.
+
+        Args:
+            ch100 (Fast5): A Fast5 class structure form of the test file
+            C4_watermang_22032017_75675_ch100_read38_strand.fast5
+        """
+        d = ch100.extract_motif_signal((14, 16))
+        keys = sorted(['motif', 'signal', 'signal_norm', 'base', 'pos'])
+        assert sorted(d.keys()) == keys
+        assert list(d['motif']) == ['TC']*8
+        assert list(d['signal']) == [468, 466, 462, 481, 540, 523, 521, 517]
+        assert list(d['base']) == ['T']*4 + ['C']*4
+        assert list(d['signal_norm']) == [0.56603773584905659,
+                                          0.52830188679245282,
+                                          0.45283018867924529,
+                                          0.81132075471698117,
+                                          1.9245283018867925,
+                                          1.6037735849056605,
+                                          1.5660377358490567,
+                                          1.4905660377358489]
+        assert list(d['pos']) == ['0']*4 + ['1']*4
+
+    def test_fast5_get_motif_signals(self, ch100):
+        """Tests that the dataframe produced by get_motif_signals is correct.
+
+        Args:
+            ch100 (Fast5): A Fast5 class structure form of the test file
+            C4_watermang_22032017_75675_ch100_read38_strand.fast5
+
+        """
+        motif = Motif('TCAACGAAATC')
+        df = ch100.get_motif_signals(motif)
+        assert df.shape == (154, 5)
+        assert df['signal'].sum() == 69935
+        assert df['signal_norm'].sum() == 46.84905660377359
+        assert df['motif'][50] == motif
+        assert df['base'][141] == 'T'
+        assert df['pos'][66] == str(7)
+
+    def test_fast5_get_motif_lengths(self, ch100):
+        motif = Motif('GATC')
+        df = ch100.get_motif_lengths(motif)
+        assert df.shape == (92, 4)
+        assert df['motif'][6] == motif
+        assert df['length'].sum() == 756
+        assert df['base'][50] == 'T'

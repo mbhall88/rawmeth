@@ -1,5 +1,5 @@
 # TODO: methods combining Sample dataframes
-# TODO: setup git for project
+
 from __future__ import print_function
 import re
 import glob
@@ -37,7 +37,6 @@ class Motif(str):
     def reverse_complement(self):
         """Returns the DNA reverse complement of the motif."""
         return Motif(self.complement()[::-1])
-
 
 
 class Sample(object):
@@ -100,7 +99,6 @@ class Sample(object):
 
 
 class Fast5(object):
-
     """
     Holds the information extracted from a Fast5 sequence file. Also provides
     methods for extracting information about motifs and their associated raw
@@ -227,8 +225,9 @@ class Fast5(object):
             bases.append(b)
 
         d = self._extract_raw_signal(starts, lengths, bases)
-        d.update({'motif': ''.join(bases)})
-        return d
+        df = pd.DataFrame.from_dict(d)
+        df['motif'] = ''.join(bases)
+        return df
 
     def get_motif_signals(self, motif):
         # type: (str) -> pd.DataFrame
@@ -242,9 +241,9 @@ class Fast5(object):
         idxs = self.motif_indices(motif)
         all_dfs = [df
                    for df in map(self.extract_motif_signal, idxs)
-                   if df]
+                   if not df.empty]
 
-        return pd.DataFrame(all_dfs) if all_dfs else pd.DataFrame()
+        return pd.concat(all_dfs) if all_dfs else pd.DataFrame()
 
     def _extract_raw_signal(self, starts, lengths, bases):
         # type: (list[int], list[int], list[str]) -> dict
@@ -258,7 +257,6 @@ class Fast5(object):
         :return: A Pandas DataFrame. Each row has the raw signal, the base that
         signal matches to, and the median normalised raw signal.
         """
-
         try:
             # create list of motif positions as strings which will be used
             # for investigating positions within a motif. If the same base
@@ -277,7 +275,7 @@ class Fast5(object):
             sigs = self.signal[start_sig_idx:end_sig_idx]
             labels = flatten_list([list(b) * l
                                    for l, b in zip(lengths, bases)])
-            pos = flatten_list([list(p) * l
+            pos = flatten_list([[p] * l
                                 for l, p in zip(lengths, positions)])
 
             # assign a base to each raw signal and create a dataframe
@@ -303,7 +301,8 @@ class Fast5(object):
                 rows_list.append({
                     'length': l,
                     'base': b,
-                    'pos': pos
+                    'pos': pos,
+                    'motif': motif
                 })
         return pd.DataFrame(rows_list)
 
