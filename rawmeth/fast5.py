@@ -84,8 +84,6 @@ class Motif(str):
         return ''.join([d[c] for c in self])
 
 
-
-
 class Sample(object):
 
     def __init__(self, path, limit=None):
@@ -242,19 +240,22 @@ class Fast5(object):
             self.shift = self.f[name].attrs['shift']
 
     def motif_indices(self, motif):
-        # type: (str) -> list[tuple[int, int]]
+        # type: (Motif) -> list[tuple[int, int]]
         """Will find motif occurrances (overlapping) in ungapped sequence
 
         :param motif: The DNA motif to find indices for. i.e 'GATC'
         :return: A list of tuples containing the start and end index for that
         motif in the sequence (events['base']).
         """
+        if not isinstance(motif, Motif):
+            motif = Motif(motif)
+
         seq = ''.join(self.events['base'])
-        return [m.span()
-                for m in re.finditer(r'{}'.format(motif), seq)]
+        return [m.span(1)
+                for m in re.finditer(r'(?=({}))'.format(motif.regex()), seq)]
 
     def extract_motif_signal(self, idx):
-        # type: (tuple[int, int]) -> dict
+        # type: (tuple[int, int]) -> pd.DataFrame
         """For a given start/end index for a motif, will extract the raw signal
         associated with each base in the motif.
 
@@ -279,7 +280,7 @@ class Fast5(object):
         return df
 
     def get_motif_signals(self, motif):
-        # type: (str) -> pd.DataFrame
+        # type: (Motif) -> pd.DataFrame
         """Will return the raw signals associated with all occurrences of a
          given motif.
 
@@ -287,6 +288,9 @@ class Fast5(object):
         :return: A Pandas DataFrame. Each row has the raw signal, the base that
         signal matches to, and the median normalised raw signal.
         """
+        if not isinstance(motif, Motif):
+            motif = Motif(motif)
+
         idxs = self.motif_indices(motif)
         all_dfs = [df
                    for df in map(self.extract_motif_signal, idxs)
