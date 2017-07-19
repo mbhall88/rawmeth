@@ -13,7 +13,9 @@ class Motif(str):
     """Class that is used to store a DNA motif.
 
     Acts effectively like the str class but with some additional methods for
-    DNA manipulation.
+    DNA manipulation and ambiguous bases.
+
+    Ambiguous bases are based on the IUPAC naming convention.
 
     """
 
@@ -31,12 +33,57 @@ class Motif(str):
 
     def complement(self):
         """Returns the DNA complement of the motif."""
-        d = {"A": "T", "T": "A", "C": "G", "G":"C"}
+        d = {
+            'A': 'T', 'T': 'A',
+            'C': 'G', 'G': 'C',
+            'W': 'S', 'S': 'W',
+            'M': 'K', 'K': 'M',
+            'R': 'Y', 'Y': 'R',
+            'B': 'V', 'V': 'B',
+            'D': 'H', 'H': 'D',
+            'N': 'N'
+        }
         return Motif("".join([d[c] for c in self]))
 
     def reverse_complement(self):
         """Returns the DNA reverse complement of the motif."""
         return Motif(self.complement()[::-1])
+
+    def regex(self):
+        """Constructs a skeleton that can be used to create a regular
+        expression for the motif.
+
+        Method doesn't return a regular expression class, but this can simply
+        be done with the following:
+
+        import re
+        motif = Motif('GWAD')
+        my_regex = re.compile(r'{}'.format(motif.regex()))
+
+        Returns:
+            str: A string representation for the motif as a regular expression.
+
+        """
+        d = {
+            'A': 'A',
+            'C': 'C',
+            'G': 'G',
+            'T': 'T',
+            'W': '[AT]',
+            'S': '[CG]',
+            'M': '[AC]',
+            'K': '[GT]',
+            'R': '[AG]',
+            'Y': '[CT]',
+            'B': '[^A]',
+            'D': '[^C]',
+            'H': '[^G]',
+            'V': '[^T]',
+            'N': '.'
+        }
+        return ''.join([d[c] for c in self])
+
+
 
 
 class Sample(object):

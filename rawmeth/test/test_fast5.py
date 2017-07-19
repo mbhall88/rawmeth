@@ -14,6 +14,17 @@ def gatc():
 
 
 @pytest.fixture
+def gwad():
+    """Returns a mptif class of GWAD
+
+    Returns:
+        Motif: A motif of GWAD
+
+    """
+    return Motif('gwad')
+
+
+@pytest.fixture
 def ch100():
     """Loads in a test fast5 file for testing.
 
@@ -62,11 +73,12 @@ class TestMotif:
 
         Args:
             gatc (Motif): GATC motif.
+            gwad (Motif): GWAD motif.
 
         """
         assert gatc == "GATC"
 
-    def test_motif_complement(self, gatc):
+    def test_motif_complement(self, gatc, gwad):
         """Tests the complement method for motif works properly.
 
         Args:
@@ -74,8 +86,9 @@ class TestMotif:
 
         """
         assert gatc.complement() == "CTAG"
+        assert gwad.complement() == 'CSTH'
 
-    def test_motif_reverse_complement(self, gatc):
+    def test_motif_reverse_complement(self, gatc, gwad):
         """Tests the reverse complement method for motif works properly.
 
         Args:
@@ -83,6 +96,15 @@ class TestMotif:
 
         """
         assert gatc.reverse_complement() == "GATC"
+        assert gwad.reverse_complement() == 'HTSC'
+
+    def test_motif_regex(self, gwad):
+        """Tests the Motif method for constructing regular expressions.
+
+        Args:
+            gwad ():
+        """
+        assert gwad.regex() == 'G[AT]A[^C]'
 
 ############################################################################
 # Fast5 tests
