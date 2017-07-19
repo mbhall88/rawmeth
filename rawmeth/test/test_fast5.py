@@ -237,6 +237,8 @@ class TestFast5:
                                                (4002, 4006), (4014, 4018),
                                                (4386, 4390)]
         assert ch100.motif_indices('TCAACGAAATC') == [(14, 25)]
+        assert ch100.motif_indices('TCAACDAAATC') == [(14, 25)]
+        assert ch100.motif_indices('TCAACDAAATCN') == [(14, 26)]
 
     def test_fast5_extract_motif_signal(self, ch100):
         """Tests that the Fast5 class is extracting to raw signal associated
