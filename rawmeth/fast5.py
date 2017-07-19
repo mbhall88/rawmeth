@@ -1,3 +1,11 @@
+"""This is a module to provide functions to handle basic data structures for
+fast5 files and collections of fast5 files for a sample/experiment. There is
+also a class to handle DNA sequence motifs (allows for use of ambiguous bases).
+
+This module is designed with the idea of using the dataframes produced to
+plot and explore the raw signal associated with given DNA motifs.
+
+"""
 # TODO: methods combining Sample dataframes
 
 from __future__ import print_function
@@ -85,9 +93,23 @@ class Motif(str):
 
 
 class Sample(object):
+    """This is a class that holds all of the Fast5 objects in a single class.
+    You provide a path to a directory containing fast5 files belonging to a
+    sample/experiment and can then extract information for all of the reads in
+    that sample.
+
+    """
 
     def __init__(self, path, limit=None):
+        """Initiates the Sample class from a directory.
 
+        Args:
+            path (str): Path to the directory of fast5 files.
+            limit (int): Used if only wanting to load in a certain number of
+             files. i.e if you have 100,000 files but just want to explore a
+             smaller subset.
+
+        """
         if os.path.isdir(path):
             self.path = os.path.normpath(path)  # remove any trailing '/'
             self.basename = os.path.basename(self.path)
@@ -108,7 +130,17 @@ class Sample(object):
 
     @staticmethod
     def _load_f5(filename):
-        # type: (str) -> Fast5
+        """Loads a fast5 file in and initiates it as a Fast5 class.
+
+        Args:
+            filename (str): The path to the fast5 file to load in.
+
+        Returns:
+            f5 (Fast5): Returns the Fast5 representation of the file, or, if
+            the file hasn't been basecalled or nanoraw corrected, will return
+            None.
+
+        """
         f5 = Fast5(filename)
         if not f5.empty:
             return f5
@@ -149,11 +181,16 @@ class Fast5(object):
     Holds the information extracted from a Fast5 sequence file. Also provides
     methods for extracting information about motifs and their associated raw
     signal from the file.
+
     """
 
     def __init__(self, path):
-        # type: (str) -> None
+        """Initiates the Fast5 class from a file path.
 
+        Args:
+            path (str): Path to the fast5 to load in.
+
+        """
         self.read_aln = None
         self.genome_aln = None
         self.signal = None
@@ -181,20 +218,25 @@ class Fast5(object):
                 raise e
 
     def _is_basecalled(self):
-        # type: () -> bool
-        """Function to determine if a fast5 file has been basecalled.
+        """Checks if a fast5 file has been basecalled.
+
         This is based on whether it has the 'Analyses' group.
 
-        :return: True or False
+        Returns:
+            bool
+
         """
         return 'Analyses' in self.f.keys()
 
     def _is_corrected(self):
-        # type: () -> bool
-        """Function to check whether the fast5 file has been resquiggled by
-        nanoraw.
+        """Checks whether the fast5 file has been resquiggled by nanoraw.
 
-        :return: Whether or not there is corrected data.
+        Checks that there is actually information nested under the
+        'RawGenomeCorrected' group.
+
+        Returns:
+            bool: Whether or not there is corrected data.
+
         """
         if not self._is_basecalled():
             return False
@@ -207,12 +249,13 @@ class Fast5(object):
                 return True
 
     def extract_fast5_info(self, name, obj):
-        # type: (str, object) -> None
         """Function to walk the fast5 internal directory and extract the
         necessary information.
 
-        :param name: The name of the current group
-        :param obj: The information attached to the group
+        Args:
+            name (str): The name of the current group
+            obj (object): The information attached to the group
+
         """
         # create regular expression for searching for data
         skel = r'Analyses/RawGenomeCorrected_\d+/BaseCalled_template'
@@ -224,6 +267,7 @@ class Fast5(object):
             r'{}/Alignment/genome_alignment$'.format(skel))
         signal_re = re.compile(r'Raw/Reads/Read_\d+/Signal$')
 
+        # TODO: fix this disgusting mess!!!
         if signal_re.match(name):
             self.signal = self.f[name].value
         elif events_re.match(name):
@@ -240,12 +284,15 @@ class Fast5(object):
             self.shift = self.f[name].attrs['shift']
 
     def motif_indices(self, motif):
-        # type: (Motif) -> list[tuple[int, int]]
         """Will find motif occurrances (overlapping) in ungapped sequence
 
-        :param motif: The DNA motif to find indices for. i.e 'GATC'
-        :return: A list of tuples containing the start and end index for that
-        motif in the sequence (events['base']).
+        Args:
+        motif (Motif): The DNA motif to find indices for. i.e 'GATC'
+
+        Returns:
+            list[tuple[int, int]]: A list of tuples containing the start and
+            end index for that motif in the sequence (events['base']).
+
         """
         if not isinstance(motif, Motif):
             motif = Motif(motif)
@@ -255,23 +302,27 @@ class Fast5(object):
                 for m in re.finditer(r'(?=({}))'.format(motif.regex()), seq)]
 
     def extract_motif_signal(self, idx):
-        # type: (tuple[int, int]) -> pd.DataFrame
         """For a given start/end index for a motif, will extract the raw signal
         associated with each base in the motif.
 
-        :param idx: tuple containing the start and end index within in the raw
-        signal array that the motif maps to. (start, end)
-        :return: A Pandas DataFrame. Each row has the raw signal, the base that
-        signal matches to, and the median normalised raw signal.
+        Args:
+            idx (tuple[int, int]): tuple containing the start and end index
+            within in the raw signal array that the motif maps to. (start, end)
+
+        Returns:
+            pd.DataFrame: Each row has the raw signal, the base that
+            signal matches to, the median normalised raw signal, and the
+            position within the motif for that event.
+
         """
         starts = []
         lengths = []
         bases = []
         motif_events = self.events[slice(*idx)]
         for e in motif_events:
-            s, l, b = list(e)[2:]
+            s, length, b = list(e)[2:]
             starts.append(s)
-            lengths.append(l)
+            lengths.append(length)
             bases.append(b)
 
         d = self._extract_raw_signal(starts, lengths, bases)
@@ -280,13 +331,17 @@ class Fast5(object):
         return df
 
     def get_motif_signals(self, motif):
-        # type: (Motif) -> pd.DataFrame
         """Will return the raw signals associated with all occurrences of a
          given motif.
 
-        :param motif: DNA motif of interest. i.e 'GATC'
-        :return: A Pandas DataFrame. Each row has the raw signal, the base that
-        signal matches to, and the median normalised raw signal.
+        Args:
+        motif (Motif): DNA motif of interest. i.e 'GATC'.
+
+        Returns:
+            pd.DataFrame: Each row has the raw signal, the base that
+            signal matches to, the median normalised raw signal, and the
+            position within the motif for that event.
+
         """
         if not isinstance(motif, Motif):
             motif = Motif(motif)
@@ -299,16 +354,20 @@ class Fast5(object):
         return pd.concat(all_dfs) if all_dfs else pd.DataFrame()
 
     def _extract_raw_signal(self, starts, lengths, bases):
-        # type: (list[int], list[int], list[str]) -> dict
         """Maps the information for each event onto the raw signal array and
         extracts it.
 
-        :param starts: List of the indices (for a motif) that denote the index
-         for the raw signal at the beginning of an event.
-        :param lengths: List of lengths of each event in motif.
-        :param bases: Bases that make up the motif of interest.
-        :return: A Pandas DataFrame. Each row has the raw signal, the base that
-        signal matches to, and the median normalised raw signal.
+        Args:
+            starts (list[int]): List of the indices (for a motif) that denote
+            the index for the raw signal at the beginning of an event.
+            lengths (list[int]): List of lengths of each event in motif.
+            bases (list[str]): Bases that make up the motif of interest.
+
+        Returns:
+            dict: A dictionary. Each 'row' has the raw signal, the base that
+        signal matches to, the median normalised raw signal, and the position
+        within the motif for that event.
+
         """
         try:
             # create list of motif positions as strings which will be used
@@ -331,7 +390,7 @@ class Fast5(object):
             pos = flatten_list([[p] * l
                                 for l, p in zip(lengths, positions)])
 
-            # assign a base to each raw signal and create a dataframe
+            # assign a base to each raw signal and create a dictionary
             return {
                 'signal': sigs,
                 'base': labels,
@@ -345,14 +404,25 @@ class Fast5(object):
             return {}
 
     def get_motif_lengths(self, motif):
+        """Get a dataframe of all the event lengths for each base in a motif
+        across the read.
+
+        Args:
+            motif (Motif): A motif whose base event lengths to extract.
+
+        Returns:
+            pd.DataFrame: A dataframe with each row containing a length (int),
+            base (str), position (str), and motif (str).
+
+        """
         idxs = self.motif_indices(motif)
         rows_list = []
         for i in idxs:
             motif_events = self.events[slice(*i)]
             for pos, row in enumerate(motif_events):
-                l, b = list(row)[3:]
+                length, b = list(row)[3:]
                 rows_list.append({
-                    'length': l,
+                    'length': length,
                     'base': b,
                     'pos': pos,
                     'motif': motif
@@ -361,7 +431,15 @@ class Fast5(object):
 
 
 def flatten_list(xs):
-    # type: (list) -> list
+    """Completely flattens a list to give a single list.
+
+    Args:
+        xs (list): A nested list of any level of nesting.
+
+    Returns:
+        list: A list with no nesting.
+
+    """
     return list(chain.from_iterable(xs))
 
 
