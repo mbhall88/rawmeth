@@ -145,6 +145,20 @@ class Sample(object):
         if not fast5.empty:
             return fast5
 
+    @property
+    def name(self):
+        """Returns the current value for the name of the sample."""
+        return self.basename
+
+    @name.setter
+    def name(self, name):
+        """Sets the name of the sample.
+
+        Args:
+            name (str): Name to assign to sample.
+        """
+        self.basename = name
+
     def get_motif_signal(self, motifs):
         """Constructs a dataframe of all raw signals for a motif within sample.
 
@@ -172,7 +186,7 @@ class Sample(object):
             motif_dfs.append(motif_df)
 
         master_df = pd.concat(motif_dfs)
-        master_df['sample'] = self.basename
+        master_df['sample'] = self.name
         return master_df
 
 

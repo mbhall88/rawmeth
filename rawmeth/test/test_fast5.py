@@ -314,7 +314,23 @@ class TestSample:
         assert len(sample.file_paths) == 4
 
     def test_sample_get_motif_signal(self, sample, gatc):
+        """Tests that the Sample class correctly extracts the dataframe for
+        a given motif.
+
+        Args:
+            sample (Sample): An instance of a Sample.
+            gatc: An instance of a Motif for 'GATC'
+        """
         df = sample.get_motif_signal(gatc)
         assert df.shape == (1589, 6)
         assert df['signal'].sum() == 759320
         assert df['signal_norm'].sum() == -502.37735849056594
+
+    def test_sample_name(self, sample):
+        """Tests the Sample getter/setter functions for name are working.
+
+        Args:
+            sample (Sample): An instance of a Sample
+        """
+        sample.name = "s10"
+        assert sample.name == "s10"
