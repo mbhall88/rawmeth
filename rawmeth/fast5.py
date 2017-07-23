@@ -41,7 +41,7 @@ class Motif(str):
 
     def complement(self):
         """Returns the DNA complement of the motif."""
-        d = {
+        dna_table = {
             'A': 'T', 'T': 'A',
             'C': 'G', 'G': 'C',
             'W': 'S', 'S': 'W',
@@ -51,7 +51,7 @@ class Motif(str):
             'D': 'H', 'H': 'D',
             'N': 'N'
         }
-        return Motif("".join([d[c] for c in self]))
+        return Motif("".join([dna_table[c] for c in self]))
 
     def reverse_complement(self):
         """Returns the DNA reverse complement of the motif."""
@@ -72,7 +72,7 @@ class Motif(str):
             str: A string representation for the motif as a regular expression.
 
         """
-        d = {
+        dna_table = {
             'A': 'A',
             'C': 'C',
             'G': 'G',
@@ -89,7 +89,7 @@ class Motif(str):
             'V': '[^T]',
             'N': '.'
         }
-        return ''.join([d[c] for c in self])
+        return ''.join([dna_table[c] for c in self])
 
 
 class Sample(object):
@@ -136,14 +136,14 @@ class Sample(object):
             filename (str): The path to the fast5 file to load in.
 
         Returns:
-            f5 (Fast5): Returns the Fast5 representation of the file, or, if
+            fast5 (Fast5): Returns the Fast5 representation of the file, or, if
             the file hasn't been basecalled or nanoraw corrected, will return
             None.
 
         """
-        f5 = Fast5(filename)
-        if not f5.empty:
-            return f5
+        fast5 = Fast5(filename)
+        if not fast5.empty:
+            return fast5
 
     def get_motif_signal(self, motifs):
         """Constructs a dataframe of all raw signals for a motif within sample.
@@ -155,7 +155,7 @@ class Sample(object):
             motifs (str | list[str]): A DNA motif or a list of DNA motifs.
 
         Returns:
-            df (pd.DataFrame): A dataframe with all raw signals for given
+            master_df (pd.DataFrame): A dataframe with all raw signals for given
             motif(s) in sample.
 
         """
@@ -171,9 +171,9 @@ class Sample(object):
             motif_df = pd.concat(dfs)
             motif_dfs.append(motif_df)
 
-        df = pd.concat(motif_dfs)
-        df['sample'] = self.basename
-        return df
+        master_df = pd.concat(motif_dfs)
+        master_df['sample'] = self.basename
+        return master_df
 
 
 class Fast5(object):
@@ -204,18 +204,18 @@ class Fast5(object):
 
         # open the fast5 file and extract the required information, then close.
         try:
-            with h5.File(path, 'r') as f:
-                self.f = f
+            with h5.File(path, 'r') as file_:
+                self.file_ = file_
                 if self._is_corrected():
-                    self.f.visititems(self.extract_fast5_info)
+                    self.file_.visititems(self.extract_fast5_info)
                     self.empty = False
 
-        except IOError as e:
+        except IOError as err:
             msg = "Unable to open file (File signature not found)"
-            if msg == e.message:
+            if msg == err.message:
                 self.empty = True
             else:
-                raise e
+                raise err
 
     def _is_basecalled(self):
         """Checks if a fast5 file has been basecalled.
@@ -226,7 +226,7 @@ class Fast5(object):
             bool
 
         """
-        return 'Analyses' in self.f.keys()
+        return 'Analyses' in self.file_.keys()
 
     def _is_corrected(self):
         """Checks whether the fast5 file has been resquiggled by nanoraw.
@@ -242,9 +242,9 @@ class Fast5(object):
             return False
 
         nanoraw_re = re.compile(r'RawGenomeCorrected*')
-        for k in self.f['Analyses'].keys():
+        for k in self.file_['Analyses'].keys():
             if nanoraw_re.match(k):
-                if not self.f['Analyses/' + k].values():
+                if not self.file_['Analyses/' + k].values():
                     return False
                 return True
 
@@ -269,19 +269,19 @@ class Fast5(object):
 
         # TODO: fix this disgusting mess!!!
         if signal_re.match(name):
-            self.signal = self.f[name].value
+            self.signal = self.file_[name].value
         elif events_re.match(name):
-            self.events = self.f[name].value
-            self.raw_offset = self.f[name].attrs['read_start_rel_to_raw']
+            self.events = self.file_[name].value
+            self.raw_offset = self.file_[name].attrs['read_start_rel_to_raw']
         elif read_segs_re.match(name):
-            self.read_segs = self.f[name].value
+            self.read_segs = self.file_[name].value
         elif read_aln_re.match(name):
-            self.read_aln = self.f[name].value
+            self.read_aln = self.file_[name].value
         elif genome_aln_re.match(name):
-            self.genome_aln = self.f[name].value
+            self.genome_aln = self.file_[name].value
         elif attrs_re.match(name):
-            self.scale = self.f[name].attrs['scale']
-            self.shift = self.f[name].attrs['shift']
+            self.scale = self.file_[name].attrs['scale']
+            self.shift = self.file_[name].attrs['shift']
 
     def motif_indices(self, motif):
         """Will find motif occurrances (overlapping) in ungapped sequence
@@ -319,16 +319,16 @@ class Fast5(object):
         lengths = []
         bases = []
         motif_events = self.events[slice(*idx)]
-        for e in motif_events:
-            s, length, b = list(e)[2:]
-            starts.append(s)
+        for event in motif_events:
+            start, length, base = list(event)[2:]
+            starts.append(start)
             lengths.append(length)
-            bases.append(b)
+            bases.append(base)
 
-        d = self._extract_raw_signal(starts, lengths, bases)
-        df = pd.DataFrame.from_dict(d)
-        df['motif'] = ''.join(bases)
-        return df
+        signal_dict = self._extract_raw_signal(starts, lengths, bases)
+        signal_df = pd.DataFrame.from_dict(signal_dict)
+        signal_df['motif'] = ''.join(bases)
+        return signal_df
 
     def get_motif_signals(self, motif):
         """Will return the raw signals associated with all occurrences of a
@@ -420,10 +420,10 @@ class Fast5(object):
         for i in idxs:
             motif_events = self.events[slice(*i)]
             for pos, row in enumerate(motif_events):
-                length, b = list(row)[3:]
+                length, base = list(row)[3:]
                 rows_list.append({
                     'length': length,
-                    'base': b,
+                    'base': base,
                     'pos': pos,
                     'motif': motif
                 })
