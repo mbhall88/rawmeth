@@ -465,30 +465,22 @@ class Fast5(object):
         if not isinstance(against, list):
             against = [against]
 
-        if isinstance(colour, list):
-            c = colour[0]
-            colour = colour[1:]
-        else:
-            c = colour
+        against.append(self)
 
-        # for all fast5 files that are to be plotted against, recurse on this
-        # function with that fast5 file as the only argument.
+        # loop through fast5 files and plot a line for each of their occurrence
+        # of the motif.
         for idx, fast5 in enumerate(against):
             if isinstance(colour, list):
                 c = colour[idx]
             else:
                 c = colour
 
-            # recurse
-            fast5.line_plot(motif, yaxis=yaxis, alpha=alpha,
-                            linewidth=linewidth, colour=c)
-
-        motif_idxs = self.motif_indices(motif)
-        for i in motif_idxs:
-            signal_df = self.extract_motif_signal(i)
-            x = generate_line_plot_xs(signal_df['pos'])
-            y = signal_df[yaxis]
-            plt.plot(x, y, linewidth=linewidth, alpha=alpha, color=c)
+            motif_idxs = fast5.motif_indices(motif)
+            for i in motif_idxs:
+                signal_df = fast5.extract_motif_signal(i)
+                x = generate_line_plot_xs(signal_df['pos'])
+                y = signal_df[yaxis]
+                plt.plot(x, y, linewidth=linewidth, alpha=alpha, color=c)
 
         plt.show()
 
