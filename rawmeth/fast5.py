@@ -446,15 +446,20 @@ class Fast5(object):
 
     def line_plot(self, motif, against=[], yaxis='signal', alpha=None,
                   linewidth=None, color='black'):
-        """
+        """Produces a line plot of the raw signal events related to the given
+         motif.
 
         Args:
-            motif ():
-            against ():
-            yaxis ():
-            alpha ():
-            linewidth ():
-            color ():
+            motif (Motif): The motif to plot signal for.
+            against (list[Fast5]): A list of Fast5 files to compare against.
+            yaxis (str): Variable to plot on the y-axis.
+            alpha (float): Transparency of the lines. Must be in the range
+            [0, 1]
+            linewidth (float): Width of the lines.
+            color (str | list[str]): Colour of the lines. If plotting against
+            other files, the list to colour files by must be the same length
+            as the number of files. Otherwise just a single colour.
+
         """
         # make sure anything wanting to plot against is in a list form.
         if not isinstance(against, list):
