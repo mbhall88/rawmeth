@@ -12,8 +12,9 @@ from __future__ import print_function
 import re
 import glob
 import os
-from itertools import chain
+from itertools import chain, groupby
 import h5py as h5
+import matplotlib.pyplot as plt
 import pandas as pd
 
 
@@ -443,6 +444,43 @@ class Fast5(object):
                 })
         return pd.DataFrame(rows_list)
 
+    def line_plot(self, motif, against=[], yaxis='signal', alpha=None,
+                  linewidth=None, color='black'):
+        """
+
+        Args:
+            motif ():
+            against ():
+            yaxis ():
+            alpha ():
+            linewidth ():
+            color ():
+        """
+        # make sure anything wanting to plot against is in a list form.
+        if not isinstance(against, list):
+            against = list(against)
+
+        # for all fast5 files that are to be plotted against, recurse on this
+        # function with that fast5 file as the only argument.
+        for idx, fast5 in enumerate(against):
+            if isinstance(color, list):
+                c = color[idx]
+            else:
+                c = color
+
+            # recurse
+            fast5.line_plot(motif, yaxis=yaxis, alpha=alpha,
+                            linewidth=linewidth, color=c)
+
+        motif_idxs = self.motif_indices(motif)
+        for i in motif_idxs:
+            signal_df = self.extract_motif_signal(i)
+            x = generate_xs(signal_df['pos'])
+            y = signal_df[yaxis]
+            plt.plot(x, y, linewidth=linewidth, alpha=alpha, color=c)
+
+        plt.show()
+
 
 def flatten_list(xs):
     """Completely flattens a list to give a single list.
@@ -478,3 +516,38 @@ def is_list_empty(xs):
         return all(is_list_empty(x) for x in xs)
     except TypeError:
         return False
+
+
+def generate_line_plot_xs(xs):
+    """Generates x axis coordinates for producing a line plot of signals.
+
+    As each event has a variable length, in order to plot a bunch of events
+    together they need to be 'squashed' into the same x-axis domain.
+    This is done by grouping all of the signals for a single event together,
+    iterating through them and dividing their position in the event by the
+    length of the event. This is effectively calculating the position in the
+    event as a percentage of the way from the start to the end. NOTE: The
+    position as a percentage is 0 indexed. i.e [0, 0] => [0.0, 0.5] not
+    [0.5, 1.0]
+
+    Examples:
+        xs = [0, 0, 1, 1, 1, 1, 2, 2, 0, 0]
+        generate_line_plot_xs(xs)
+        >>> [0.0, 0.5, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 0.0, 0.5]
+
+    Args:
+        xs (list): A list of integers or floats.
+
+    Returns:
+        x_coords (list[float]): A list of the x-coordinates to use to
+        'squash` the given events onto the same x-axis domain.
+
+    """
+    x_coords = []
+    xs_generator = groupby(xs)
+    for key, gen in xs_generator:
+        event_len = sum(1 for _ in gen)
+        pos_as_perc = [(float(pos) / event_len) + int(key)
+                       for pos in range(event_len)]
+        x_coords.extend(pos_as_perc)
+    return x_coords
