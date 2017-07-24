@@ -444,7 +444,7 @@ class Fast5(object):
                 })
         return pd.DataFrame(rows_list)
 
-    def line_plot(self, motif, against=[], yaxis='signal', alpha=None,
+    def line_plot(self, motif, against=None, yaxis='signal', alpha=None,
                   linewidth=None, colour='black'):
         """Produces a line plot of the raw signal events related to the given
          motif.
@@ -463,7 +463,10 @@ class Fast5(object):
         """
         # make sure anything wanting to plot against is in a list form.
         if not isinstance(against, list):
-            against = [against]
+            if against:
+                against = [against]
+            else:
+                against = []
 
         against.append(self)
 
@@ -471,16 +474,16 @@ class Fast5(object):
         # of the motif.
         for idx, fast5 in enumerate(against):
             if isinstance(colour, list):
-                c = colour[idx]
+                col = colour[idx]
             else:
-                c = colour
+                col = colour
 
             motif_idxs = fast5.motif_indices(motif)
             for i in motif_idxs:
                 signal_df = fast5.extract_motif_signal(i)
                 x = generate_line_plot_xs(signal_df['pos'])
                 y = signal_df[yaxis]
-                plt.plot(x, y, linewidth=linewidth, alpha=alpha, color=c)
+                plt.plot(x, y, linewidth=linewidth, alpha=alpha, color=col)
 
         plt.show()
 
