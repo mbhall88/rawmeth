@@ -463,7 +463,13 @@ class Fast5(object):
         """
         # make sure anything wanting to plot against is in a list form.
         if not isinstance(against, list):
-            against = list(against)
+            against = [against]
+
+        if isinstance(colour, list):
+            c = colour[0]
+            colour = colour[1:]
+        else:
+            c = colour
 
         # for all fast5 files that are to be plotted against, recurse on this
         # function with that fast5 file as the only argument.
@@ -482,7 +488,7 @@ class Fast5(object):
             signal_df = self.extract_motif_signal(i)
             x = generate_line_plot_xs(signal_df['pos'])
             y = signal_df[yaxis]
-            plt.plot(x, y, linewidth=linewidth, alpha=alpha, colour=colour)
+            plt.plot(x, y, linewidth=linewidth, alpha=alpha, color=c)
 
         plt.show()
 
