@@ -445,7 +445,7 @@ class Fast5(object):
         return pd.DataFrame(rows_list)
 
     def line_plot(self, motif, against=[], yaxis='signal', alpha=None,
-                  linewidth=None, color='black'):
+                  linewidth=None, colour='black'):
         """Produces a line plot of the raw signal events related to the given
          motif.
 
@@ -456,7 +456,7 @@ class Fast5(object):
             alpha (float): Transparency of the lines. Must be in the range
             [0, 1]
             linewidth (float): Width of the lines.
-            color (str | list[str]): Colour of the lines. If plotting against
+            colour (str | list[str]): Colour of the lines. If plotting against
             other files, the list to colour files by must be the same length
             as the number of files. Otherwise just a single colour.
 
@@ -468,21 +468,21 @@ class Fast5(object):
         # for all fast5 files that are to be plotted against, recurse on this
         # function with that fast5 file as the only argument.
         for idx, fast5 in enumerate(against):
-            if isinstance(color, list):
-                c = color[idx]
+            if isinstance(colour, list):
+                c = colour[idx]
             else:
-                c = color
+                c = colour
 
             # recurse
             fast5.line_plot(motif, yaxis=yaxis, alpha=alpha,
-                            linewidth=linewidth, color=c)
+                            linewidth=linewidth, colour=c)
 
         motif_idxs = self.motif_indices(motif)
         for i in motif_idxs:
             signal_df = self.extract_motif_signal(i)
-            x = generate_xs(signal_df['pos'])
+            x = generate_line_plot_xs(signal_df['pos'])
             y = signal_df[yaxis]
-            plt.plot(x, y, linewidth=linewidth, alpha=alpha, color=c)
+            plt.plot(x, y, linewidth=linewidth, alpha=alpha, colour=colour)
 
         plt.show()
 
