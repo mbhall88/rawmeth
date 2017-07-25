@@ -190,6 +190,8 @@ class Sample(object):
         master_df['sample'] = self.name
         return master_df
 
+    def line_plot(self, motif, against=None, yaxis='signal'):
+
 
 class Fast5(object):
     """
@@ -445,7 +447,7 @@ class Fast5(object):
         return pd.DataFrame(rows_list)
 
     def line_plot(self, motif, against=None, yaxis='signal', alpha=None,
-                  linewidth=None, colour_map='tab10'):
+                  linewidth=None, colour_map='Set1'):
         """Produces a line plot of the raw signal events related to the given
          motif.
 
@@ -461,6 +463,8 @@ class Fast5(object):
 
         """
         colours = plt.get_cmap(colour_map).colors
+        import matplotlib as mpl
+        mpl.style.use('seaborn-bright')
 
         # make sure anything wanting to plot against is in a list form.
         if not isinstance(against, list):
