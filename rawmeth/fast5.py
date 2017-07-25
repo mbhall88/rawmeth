@@ -487,8 +487,8 @@ class Fast5(object):
                     plt.plot(x, y, linewidth=linewidth, alpha=alpha,
                              color=colours[idx])
         plt.savefig('test.png', dpi=300)
-        plt.show()
-
+        # plt.show()
+        plt.close()
 
 def flatten_list(xs):
     """Completely flattens a list to give a single list.
