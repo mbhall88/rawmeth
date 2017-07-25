@@ -215,16 +215,20 @@ class Sample(object):
             figsize (tuple[int, int]): Figure size - w,h tuple in inches.
 
         """
+        # get list of colours for specified colour map
         colours = plt.get_cmap(colour_map).colors
+
+        # set up the figure and axes
         fig, ax = plt.subplots(figsize=figsize)
+
         # make sure anything wanting to plot against is in a list form.
         if not isinstance(against, list):
             if against:
                 against = [against]
             else:
                 against = []
-
         against.append(self)
+
         # loop through sample files and plot a line for each of their occurrence
         # of the motif.
         for idx, sample in enumerate(against):
@@ -498,7 +502,8 @@ class Fast5(object):
         return pd.DataFrame(rows_list)
 
     def line_plot(self, motif, against=None, yaxis='signal', alpha=None,
-                  linewidth=None, colour_map='Set1', save=None):
+                  linewidth=None, colour_map='Set1', save=None,
+                  figsize=(12, 10)):
         """Produces a line plot of the raw signal events related to the given
          motif.
 
@@ -513,9 +518,14 @@ class Fast5(object):
             https://matplotlib.org/examples/color/colormaps_reference.html
             save (str): Filename to save plot as. If left as None, file will
             not be saved.
+            figsize (tuple[int, int]): Figure size - w,h tuple in inches.
 
         """
+        # get list of colours for specified colour map
         colours = plt.get_cmap(colour_map).colors
+
+        # set up the figure and axes
+        fig, ax = plt.subplots(figsize=figsize)
 
         # make sure anything wanting to plot against is in a list form.
         if not isinstance(against, list):
@@ -523,8 +533,8 @@ class Fast5(object):
                 against = [against]
             else:
                 against = []
-
         against.append(self)
+
         # loop through fast5 files and plot a line for each of their occurrence
         # of the motif.
         for idx, fast5 in enumerate(against):
@@ -533,11 +543,11 @@ class Fast5(object):
                 signal_df = fast5.extract_motif_signal(i)
                 x = generate_line_plot_xs(signal_df['pos'])
                 y = signal_df[yaxis]
-                plt.plot(x, y, linewidth=linewidth, alpha=alpha,
+                ax.plot(x, y, linewidth=linewidth, alpha=alpha,
                          color=colours[idx])
 
         if save:
-            plt.savefig(save, dpi=300)
+            fig.savefig(save, dpi=300)
 
         plt.show()
         plt.close()
