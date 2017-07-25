@@ -191,7 +191,7 @@ class Sample(object):
         return master_df
 
     def line_plot(self, motif, against=None, yaxis='signal'):
-
+        pass
 
 class Fast5(object):
     """
