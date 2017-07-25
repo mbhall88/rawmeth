@@ -486,6 +486,7 @@ class Fast5(object):
                     y = signal_df[yaxis]
                     plt.plot(x, y, linewidth=linewidth, alpha=alpha,
                              color=colours[idx])
+        plt.savefig('test.png', dpi=300)
         plt.show()
 
 
