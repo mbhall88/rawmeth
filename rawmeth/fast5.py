@@ -475,18 +475,17 @@ class Fast5(object):
                 against = []
 
         against.append(self)
-
-        # loop through fast5 files and plot a line for each of their occurrence
-        # of the motif.
-        for idx, fast5 in enumerate(against):
-            motif_idxs = fast5.motif_indices(motif)
-            for i in motif_idxs:
-                signal_df = fast5.extract_motif_signal(i)
-                x = generate_line_plot_xs(signal_df['pos'])
-                y = signal_df[yaxis]
-                plt.plot(x, y, linewidth=linewidth, alpha=alpha,
-                         color=colours[idx])
-        plt.style.use('seaborn-bright')
+        with plt.style.context(('seaborn-bright')):
+            # loop through fast5 files and plot a line for each of their occurrence
+            # of the motif.
+            for idx, fast5 in enumerate(against):
+                motif_idxs = fast5.motif_indices(motif)
+                for i in motif_idxs:
+                    signal_df = fast5.extract_motif_signal(i)
+                    x = generate_line_plot_xs(signal_df['pos'])
+                    y = signal_df[yaxis]
+                    plt.plot(x, y, linewidth=linewidth, alpha=alpha,
+                             color=colours[idx])
         plt.show()
 
 
