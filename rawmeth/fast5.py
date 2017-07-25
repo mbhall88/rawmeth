@@ -197,7 +197,7 @@ class Sample(object):
 
     def line_plot(self, motif, against=None, yaxis='signal', alpha=None,
                   linewidth=None, colour_map='Set1', save=None,
-                  figsize=(12, 10)):
+                  figsize=(12, 10), threshold=2000):
         """Produces a line plot of the raw signal events related to the given
          motif.
 
@@ -213,6 +213,7 @@ class Sample(object):
             save (str): Filename to save plot as. If left as None, file will
             not be saved.
             figsize (tuple[int, int]): Figure size - w,h tuple in inches.
+            threshold (int): Filter out reads with a raw signal over this.
 
         """
         # get list of colours for specified colour map
@@ -235,7 +236,8 @@ class Sample(object):
             for fast5 in sample:
                 motif_idxs = fast5.motif_indices(motif)
                 for i in motif_idxs:
-                    signal_df = fast5.extract_motif_signal(i)
+                    signal_df = \
+                        fast5.extract_motif_signal(i, threshold=threshold)
                     x = generate_line_plot_xs(signal_df['pos'])
                     y = signal_df[yaxis]
                     ax.plot(x, y, linewidth=linewidth, alpha=alpha,
@@ -373,7 +375,7 @@ class Fast5(object):
         return [m.span(1)
                 for m in re.finditer(r'(?=({}))'.format(motif.regex()), seq)]
 
-    def extract_motif_signal(self, idx):
+    def extract_motif_signal(self, idx, threshold=None):
         """For a given start/end index for a motif, will extract the raw signal
         associated with each base in the motif.
 
@@ -385,6 +387,7 @@ class Fast5(object):
             pd.DataFrame: Each row has the raw signal, the base that
             signal matches to, the median normalised raw signal, and the
             position within the motif for that event.
+            threshold (int): Filter out reads with a raw signal over this.
 
         """
         starts = []
@@ -399,6 +402,12 @@ class Fast5(object):
 
         signal_dict = self._extract_raw_signal(starts, lengths, bases)
         signal_df = pd.DataFrame.from_dict(signal_dict)
+
+        if threshold:
+            t = threshold
+            signal_df = \
+                signal_df[signal_df['signal'].between(-t, t, inclusive=True)]
+
         signal_df['motif'] = ''.join(bases)
         return signal_df
 
@@ -503,7 +512,7 @@ class Fast5(object):
 
     def line_plot(self, motif, against=None, yaxis='signal', alpha=None,
                   linewidth=None, colour_map='Set1', save=None,
-                  figsize=(12, 10)):
+                  figsize=(12, 10), threshold=2000):
         """Produces a line plot of the raw signal events related to the given
          motif.
 
@@ -519,6 +528,7 @@ class Fast5(object):
             save (str): Filename to save plot as. If left as None, file will
             not be saved.
             figsize (tuple[int, int]): Figure size - w,h tuple in inches.
+            threshold (int): Filter out reads with a raw signal over this.
 
         """
         # get list of colours for specified colour map
@@ -540,7 +550,7 @@ class Fast5(object):
         for idx, fast5 in enumerate(against):
             motif_idxs = fast5.motif_indices(motif)
             for i in motif_idxs:
-                signal_df = fast5.extract_motif_signal(i)
+                signal_df = fast5.extract_motif_signal(i, threshold=threshold)
                 x = generate_line_plot_xs(signal_df['pos'])
                 y = signal_df[yaxis]
                 ax.plot(x, y, linewidth=linewidth, alpha=alpha,
