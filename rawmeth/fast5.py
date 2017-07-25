@@ -464,8 +464,8 @@ class Fast5(object):
 
         """
         colours = plt.get_cmap(colour_map).colors
-        import matplotlib as mpl
-        mpl.style.use('seaborn-bright')
+        # import matplotlib as mpl
+        plt.style.use('seaborn-bright')
 
         # make sure anything wanting to plot against is in a list form.
         if not isinstance(against, list):
