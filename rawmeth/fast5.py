@@ -196,7 +196,8 @@ class Sample(object):
         return master_df
 
     def line_plot(self, motif, against=None, yaxis='signal', alpha=None,
-                  linewidth=None, colour_map='Set1', save=None):
+                  linewidth=None, colour_map='Set1', save=None,
+                  figsize=(12, 10)):
         """Produces a line plot of the raw signal events related to the given
          motif.
 
@@ -211,10 +212,11 @@ class Sample(object):
             https://matplotlib.org/examples/color/colormaps_reference.html
             save (str): Filename to save plot as. If left as None, file will
             not be saved.
+            figsize (tuple[int, int]): Figure size - w,h tuple in inches.
 
         """
         colours = plt.get_cmap(colour_map).colors
-        fig, ax = plt.subplots(figsize=(15,15))
+        fig, ax = plt.subplots(figsize=figsize)
         # make sure anything wanting to plot against is in a list form.
         if not isinstance(against, list):
             if against:
