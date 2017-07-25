@@ -213,7 +213,10 @@ class Sample(object):
             save (str): Filename to save plot as. If left as None, file will
             not be saved.
             figsize (tuple[int, int]): Figure size - w,h tuple in inches.
-            threshold (int): Filter out reads with a raw signal over this.
+            threshold (int | tuple[int, int]): Filter out reads with a raw
+            signal over this. If single value, the range will be
+            [-threshold, threshold]. If a tuple is provided, the lower is bound
+             is the first and the upper the second element.
 
         """
         # get list of colours for specified colour map
@@ -387,7 +390,10 @@ class Fast5(object):
             pd.DataFrame: Each row has the raw signal, the base that
             signal matches to, the median normalised raw signal, and the
             position within the motif for that event.
-            threshold (int): Filter out reads with a raw signal over this.
+            threshold (int | tuple[int, int]): Filter out reads with a raw
+            signal over this. If single value, the range will be
+            [-threshold, threshold]. If a tuple is provided, the lower is bound
+             is the first and the upper the second element.
 
         """
         starts = []
@@ -404,9 +410,15 @@ class Fast5(object):
         signal_df = pd.DataFrame.from_dict(signal_dict)
 
         if threshold:
-            t = threshold
-            signal_df = \
-                signal_df[signal_df['signal'].between(-t, t, inclusive=True)]
+            if isinstance(threshold, tuple):
+                lower = threshold[0]
+                upper = threshold[1]
+            else:
+                lower = -threshold
+                upper = threshold
+
+            signal_df = signal_df[signal_df['signal'].between(lower, upper,
+                                                              inclusive=True)]
 
         signal_df['motif'] = ''.join(bases)
         return signal_df
@@ -528,7 +540,10 @@ class Fast5(object):
             save (str): Filename to save plot as. If left as None, file will
             not be saved.
             figsize (tuple[int, int]): Figure size - w,h tuple in inches.
-            threshold (int): Filter out reads with a raw signal over this.
+            threshold (int | tuple[int, int]): Filter out reads with a raw
+            signal over this. If single value, the range will be
+            [-threshold, threshold]. If a tuple is provided, the lower is bound
+             is the first and the upper the second element.
 
         """
         # get list of colours for specified colour map
