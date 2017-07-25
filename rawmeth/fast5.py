@@ -226,7 +226,7 @@ class Sample(object):
         # loop through sample files and plot a line for each of their occurrence
         # of the motif.
         for idx, sample in enumerate(against):
-            for fast5 in sample.files:
+            for fast5 in sample:
                 motif_idxs = fast5.motif_indices(motif)
                 for i in motif_idxs:
                     signal_df = fast5.extract_motif_signal(i)
@@ -240,7 +240,6 @@ class Sample(object):
 
         plt.show()
         plt.close()
-
 
 
 class Fast5(object):
@@ -540,6 +539,7 @@ class Fast5(object):
 
         plt.show()
         plt.close()
+
 
 def flatten_list(xs):
     """Completely flattens a list to give a single list.
