@@ -465,7 +465,7 @@ class Fast5(object):
         """
         colours = plt.get_cmap(colour_map).colors
         # import matplotlib as mpl
-        plt.style.use('seaborn-bright')
+
 
         # make sure anything wanting to plot against is in a list form.
         if not isinstance(against, list):
@@ -486,7 +486,7 @@ class Fast5(object):
                 y = signal_df[yaxis]
                 plt.plot(x, y, linewidth=linewidth, alpha=alpha,
                          color=colours[idx])
-
+        plt.style.use('seaborn-bright')
         plt.show()
 
 
