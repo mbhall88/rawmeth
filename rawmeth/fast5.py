@@ -193,6 +193,7 @@ class Sample(object):
     def line_plot(self, motif, against=None, yaxis='signal'):
         pass
 
+
 class Fast5(object):
     """
     Holds the information extracted from a Fast5 sequence file. Also provides
