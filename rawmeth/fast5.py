@@ -448,7 +448,7 @@ class Fast5(object):
         return pd.DataFrame(rows_list)
 
     def line_plot(self, motif, against=None, yaxis='signal', alpha=None,
-                  linewidth=None, colour_map='Set1'):
+                  linewidth=None, colour_map='Set1', save=None):
         """Produces a line plot of the raw signal events related to the given
          motif.
 
@@ -461,11 +461,11 @@ class Fast5(object):
             linewidth (float): Width of the lines.
             colour_map (str): Matplotlib colour map to use. For list of names -
             https://matplotlib.org/examples/color/colormaps_reference.html
+            save (str): Filename to save file as. If left as None, file will
+            not be saved.
 
         """
         colours = plt.get_cmap(colour_map).colors
-        # import matplotlib as mpl
-
 
         # make sure anything wanting to plot against is in a list form.
         if not isinstance(against, list):
@@ -475,19 +475,21 @@ class Fast5(object):
                 against = []
 
         against.append(self)
-        with plt.style.context(('seaborn-bright')):
-            # loop through fast5 files and plot a line for each of their occurrence
-            # of the motif.
-            for idx, fast5 in enumerate(against):
-                motif_idxs = fast5.motif_indices(motif)
-                for i in motif_idxs:
-                    signal_df = fast5.extract_motif_signal(i)
-                    x = generate_line_plot_xs(signal_df['pos'])
-                    y = signal_df[yaxis]
-                    plt.plot(x, y, linewidth=linewidth, alpha=alpha,
-                             color=colours[idx])
-        plt.savefig('test.png', dpi=300)
-        # plt.show()
+        # loop through fast5 files and plot a line for each of their occurrence
+        # of the motif.
+        for idx, fast5 in enumerate(against):
+            motif_idxs = fast5.motif_indices(motif)
+            for i in motif_idxs:
+                signal_df = fast5.extract_motif_signal(i)
+                x = generate_line_plot_xs(signal_df['pos'])
+                y = signal_df[yaxis]
+                plt.plot(x, y, linewidth=linewidth, alpha=alpha,
+                         color=colours[idx])
+
+        if save:
+            plt.savefig(save, dpi=300)
+
+        plt.show()
         plt.close()
 
 def flatten_list(xs):
