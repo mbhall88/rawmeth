@@ -214,7 +214,7 @@ class Sample(object):
 
         """
         colours = plt.get_cmap(colour_map).colors
-
+        fig, ax = plt.subplots(figsize=(15,15))
         # make sure anything wanting to plot against is in a list form.
         if not isinstance(against, list):
             if against:
@@ -232,11 +232,11 @@ class Sample(object):
                     signal_df = fast5.extract_motif_signal(i)
                     x = generate_line_plot_xs(signal_df['pos'])
                     y = signal_df[yaxis]
-                    plt.plot(x, y, linewidth=linewidth, alpha=alpha,
+                    ax.plot(x, y, linewidth=linewidth, alpha=alpha,
                              color=colours[idx])
 
         if save:
-            plt.savefig(save, dpi=300)
+            fig.savefig(save, dpi=300)
 
         plt.show()
         plt.close()
