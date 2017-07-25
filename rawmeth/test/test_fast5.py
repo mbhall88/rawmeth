@@ -313,6 +313,11 @@ class TestSample:
         assert sample.basename == 'data'
         assert len(sample.file_paths) == 4
 
+    def test_sample_iter(self, sample):
+        files_true = sample.files
+        files_test = [fast5 for fast5 in sample]
+        assert files_true == files_test
+
     def test_sample_get_motif_signal(self, sample, gatc):
         """Tests that the Sample class correctly extracts the dataframe for
         a given motif.

@@ -129,6 +129,11 @@ class Sample(object):
         # load fast5 files into Fast5 objects
         self.files = filter(None, map(self._load_f5, self.file_paths))
 
+    def __iter__(self):
+        """When iterating on Sample object, will iterate over fast5 files."""
+        for fast5 in self.files:
+            yield fast5
+
     @staticmethod
     def _load_f5(filename):
         """Loads a fast5 file in and initiates it as a Fast5 class.
@@ -190,8 +195,52 @@ class Sample(object):
         master_df['sample'] = self.name
         return master_df
 
-    def line_plot(self, motif, against=None, yaxis='signal'):
-        pass
+    def line_plot(self, motif, against=None, yaxis='signal', alpha=None,
+                  linewidth=None, colour_map='Set1', save=None):
+        """Produces a line plot of the raw signal events related to the given
+         motif.
+
+        Args:
+            motif (Motif): The motif to plot signal for.
+            against (list[Sample]): A list of Samples to compare against.
+            yaxis (str): Variable to plot on the y-axis.
+            alpha (float): Transparency of the lines. Must be in the range
+            [0, 1]
+            linewidth (float): Width of the lines.
+            colour_map (str): Matplotlib colour map to use. For list of names -
+            https://matplotlib.org/examples/color/colormaps_reference.html
+            save (str): Filename to save plot as. If left as None, file will
+            not be saved.
+
+        """
+        colours = plt.get_cmap(colour_map).colors
+
+        # make sure anything wanting to plot against is in a list form.
+        if not isinstance(against, list):
+            if against:
+                against = [against]
+            else:
+                against = []
+
+        against.append(self)
+        # loop through sample files and plot a line for each of their occurrence
+        # of the motif.
+        for idx, sample in enumerate(against):
+            for fast5 in sample.files:
+                motif_idxs = fast5.motif_indices(motif)
+                for i in motif_idxs:
+                    signal_df = fast5.extract_motif_signal(i)
+                    x = generate_line_plot_xs(signal_df['pos'])
+                    y = signal_df[yaxis]
+                    plt.plot(x, y, linewidth=linewidth, alpha=alpha,
+                             color=colours[idx])
+
+        if save:
+            plt.savefig(save, dpi=300)
+
+        plt.show()
+        plt.close()
+
 
 
 class Fast5(object):
@@ -461,7 +510,7 @@ class Fast5(object):
             linewidth (float): Width of the lines.
             colour_map (str): Matplotlib colour map to use. For list of names -
             https://matplotlib.org/examples/color/colormaps_reference.html
-            save (str): Filename to save file as. If left as None, file will
+            save (str): Filename to save plot as. If left as None, file will
             not be saved.
 
         """
