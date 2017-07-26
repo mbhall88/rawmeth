@@ -37,6 +37,13 @@ def ch100():
 
 @pytest.fixture
 def ch269():
+    """Loads a test fast5 file that has not been nanoraw corrected, but has
+    been basecalled. This is effectively a corner case.
+
+    Returns:
+        (Fast5): A Fast5 class instance of the file.
+
+    """
     return Fast5('rawmeth/test/data/'
                  'C4_watermang_22032017_75675_ch269_read67_strand.fast5')
 
@@ -175,6 +182,7 @@ class TestFast5:
             ch100 (Fast5): A Fast5 class structure form of the test file
             C4_watermang_22032017_75675_ch100_read38_strand.fast5
             empty_fast5 (Fast5): An empty fast5 file.
+            ch269 (Fast5): A fast5 file that has not been nanoraw corrected.
 
         """
         assert empty_fast5.empty
@@ -314,6 +322,11 @@ class TestSample:
         assert len(sample.file_paths) == 4
 
     def test_sample_iter(self, sample):
+        """Tests that the iteration functionality is working on the Sample class
+
+        Args:
+            sample (Sample): An instance of a Sample class.
+        """
         files_true = sample.files
         files_test = [fast5 for fast5 in sample]
         assert files_true == files_test
@@ -336,6 +349,19 @@ class TestSample:
 
         Args:
             sample (Sample): An instance of a Sample
+
         """
         sample.name = "s10"
         assert sample.name == "s10"
+
+    def test_sample_index(self, sample):
+        """Tests that indexing on the Sample class is functioning as expected.
+
+        Args:
+            sample (Sample): Instance of a Sample
+
+        """
+        assert sample[0].name == 'C4_watermang_22032017_12981_ch258_' \
+                                 'read1072_strand.fast5'
+        assert sample[1].name == 'C4_watermang_22032017_75675_ch100_' \
+                                 'read38_strand.fast5'

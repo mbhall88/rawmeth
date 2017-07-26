@@ -129,10 +129,22 @@ class Sample(object):
         # load fast5 files into Fast5 objects
         self.files = filter(None, map(self._load_f5, self.file_paths))
 
+    def __getitem__(self, item):
+        """Allows for indexing the Sample object.
+
+        Args:
+            item (int): Index
+
+        Returns:
+            (Fast5): The Fast5 object within self.files list corresponding to
+            the given index.
+
+        """
+        return self.files[item]
+
     def __iter__(self):
         """When iterating on Sample object, will iterate over fast5 files."""
-        for fast5 in self.files:
-            yield fast5
+        return iter(self.files)
 
     @staticmethod
     def _load_f5(filename):
@@ -378,22 +390,24 @@ class Fast5(object):
         return [m.span(1)
                 for m in re.finditer(r'(?=({}))'.format(motif.regex()), seq)]
 
-    def extract_motif_signal(self, idx, threshold=None):
+    def extract_motif_signal(self, idx, threshold=None, threshold_signal=None):
         """For a given start/end index for a motif, will extract the raw signal
         associated with each base in the motif.
 
         Args:
             idx (tuple[int, int]): tuple containing the start and end index
-            within in the raw signal array that the motif maps to. (start, end)
+            within in the raw signal array that the motif maps to. (start, end).
+            threshold (int | tuple[int, int]): Filter out reads with a raw
+            signal over this. If single value, the range will be
+            [-threshold, threshold]. If a tuple is provided, the lower is bound
+             is the first and the upper the second element.
+            threshold_signal (str): Indicates which signal to threshold.
+            'signal' (raw) or 'signal_norm' (median normalised).
 
         Returns:
             pd.DataFrame: Each row has the raw signal, the base that
             signal matches to, the median normalised raw signal, and the
             position within the motif for that event.
-            threshold (int | tuple[int, int]): Filter out reads with a raw
-            signal over this. If single value, the range will be
-            [-threshold, threshold]. If a tuple is provided, the lower is bound
-             is the first and the upper the second element.
 
         """
         starts = []
@@ -417,8 +431,8 @@ class Fast5(object):
                 lower = -threshold
                 upper = threshold
 
-            signal_df = signal_df[signal_df['signal'].between(lower, upper,
-                                                              inclusive=True)]
+            signal_df = signal_df[signal_df[threshold_signal]
+                .between(lower, upper, inclusive=True)]
 
         signal_df['motif'] = ''.join(bases)
         return signal_df
