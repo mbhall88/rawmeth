@@ -12,6 +12,8 @@ from __future__ import print_function
 import re
 import glob
 import os
+from bokeh import palettes
+from bokeh.io import save as bokeh_save
 from bokeh.plotting import figure, output_file
 from itertools import chain, groupby
 import h5py as h5
@@ -209,8 +211,8 @@ class Sample(object):
         return master_df
 
     def line_plot(self, motif, against=None, yaxis='signal', alpha=None,
-                  linewidth=None, colour_map='Set1', save=None,
-                  figsize=(12, 10), threshold=2000):
+                  linewidth=None, colour_map='Set1', save_as=None,
+                  figsize=(960, 500), threshold=None, legend=True):
         """Produces a line plot of the raw signal events related to the given
          motif.
 
@@ -223,21 +225,23 @@ class Sample(object):
             linewidth (float): Width of the lines.
             colour_map (str): Matplotlib colour map to use. For list of names -
             https://matplotlib.org/examples/color/colormaps_reference.html
-            save (str): Filename to save plot as. If left as None, file will
-            not be saved.
-            figsize (tuple[int, int]): Figure size - w,h tuple in inches.
+            save_as (str): Filename to save plot as. If left as None, file will
+            not be saved. File is saved as a HTML. Other formats can be saved
+            from this HTML. The file extension is not required in the file name.
+            figsize (tuple[int, int]): Figure size - w,h tuple in pixels.
             threshold (int | tuple[int, int]): Filter out reads with a raw
             signal over this. If single value, the range will be
             [-threshold, threshold]. If a tuple is provided, the lower is bound
              is the first and the upper the second element.
+            legend (bool): Whether or not to add a legend to the plot.
+
+        Returns:
+            plot (bokeh.plotting.figure.Figure): A bokeh figure object.
+            If using this function within a python notebook, the plot can be
+            shown by following the instructions at
+            http://bokeh.pydata.org/en/latest/docs/user_guide/notebook.html
 
         """
-        # get list of colours for specified colour map
-        colours = plt.get_cmap(colour_map).colors
-
-        # set up the figure and axes
-        fig, ax = plt.subplots(figsize=figsize)
-
         # make sure anything wanting to plot against is in a list form.
         if not isinstance(against, list):
             if against:
@@ -245,6 +249,19 @@ class Sample(object):
             else:
                 against = []
         against.append(self)
+
+        # get list of colours for specified colour map
+        colours = palettes.all_palettes[colour_map][len(against)]
+
+        title = 'Nanopore signal across {} motif'.format(motif)
+        ylabel = 'Raw Signal (pA)' if yaxis == 'signal' else 'Normalised Signal'
+
+        plot = figure(plot_width=figsize[0],
+                      plot_height=figsize[1],
+                      title=title,
+                      y_axis_label=ylabel,
+                      x_axis_label='Motif ({})'.format(motif),
+                      tools='pan, box_zoom, reset, save, ywheel_zoom')
 
         # loop through sample files and plot a line for each of their occurrence
         # of the motif.
@@ -259,14 +276,26 @@ class Sample(object):
 
                     x = _generate_line_plot_xs(signal_df['pos'])
                     y = signal_df[yaxis]
-                    ax.plot(x, y, linewidth=linewidth, alpha=alpha,
-                             color=colours[idx])
+                    plot.line(x, y,
+                              line_width=linewidth,
+                              alpha=alpha,
+                              color=colours[idx],
+                              legend=sample.name)
 
-        if save:
-            fig.savefig(save, dpi=300)
+        # configure the legend
+        if legend:
+            plot.legend.location = 'top_right'
+            plot.legend.click_policy = 'hide'  # clicking group will hide it
+            plot.legend.label_text_font = 'roboto'
+            plot.legend.background_fill_alpha = 0
 
-        plt.show()
-        plt.close()
+        if save_as:
+            saved_as = bokeh_save(plot,
+                                  filename='{}.html'.format(save_as),
+                                  title=title)
+            print('Plot saved as {}'.format(saved_as))
+
+        return plot
 
 
 class Fast5(object):
@@ -524,8 +553,8 @@ class Fast5(object):
         return pd.DataFrame(rows_list)
 
     def line_plot(self, motif, against=None, yaxis='signal', alpha=None,
-                  linewidth=None, colour_map='Set1', save=None,
-                  figsize=(12, 10), threshold=2000):
+                  linewidth=None, colour_map='Set1', save_as=None,
+                  figsize=(960, 500), threshold=None, legend=True):
         """Produces a line plot of the raw signal events related to the given
          motif.
 
@@ -538,21 +567,23 @@ class Fast5(object):
             linewidth (float): Width of the lines.
             colour_map (str): Matplotlib colour map to use. For list of names -
             https://matplotlib.org/examples/color/colormaps_reference.html
-            save (str): Filename to save plot as. If left as None, file will
-            not be saved.
-            figsize (tuple[int, int]): Figure size - w,h tuple in inches.
+            save_as (str): Filename to save plot as. If left as None, file will
+            not be saved. File is saved as a HTML. Other formats can be saved
+            from this HTML. The file extension is not required in the file name.
+            figsize (tuple[int, int]): Figure size - w,h tuple in pixels.
             threshold (int | tuple[int, int]): Filter out reads with a raw
             signal over this. If single value, the range will be
             [-threshold, threshold]. If a tuple is provided, the lower is bound
              is the first and the upper the second element.
+            legend (bool): Whether or not to add a legend to the plot.
+
+        Returns:
+            plot (bokeh.plotting.figure.Figure): A bokeh figure object.
+            If using this function within a python notebook, the plot can be
+            shown by following the instructions at
+            http://bokeh.pydata.org/en/latest/docs/user_guide/notebook.html
 
         """
-        # get list of colours for specified colour map
-        colours = plt.get_cmap(colour_map).colors
-
-        # set up the figure and axes
-        fig, ax = plt.subplots(figsize=figsize)
-
         # make sure anything wanting to plot against is in a list form.
         if not isinstance(against, list):
             if against:
@@ -560,6 +591,19 @@ class Fast5(object):
             else:
                 against = []
         against.append(self)
+
+        # get list of colours for specified colour map
+        colours = palettes.all_palettes[colour_map][len(against)]
+
+        title = 'Nanopore signal across {} motif'.format(motif)
+        ylabel = 'Raw Signal (pA)' if yaxis == 'signal' else 'Normalised Signal'
+
+        plot = figure(plot_width=figsize[0],
+                      plot_height=figsize[1],
+                      title=title,
+                      y_axis_label=ylabel,
+                      x_axis_label='Motif ({})'.format(motif),
+                      tools='pan, box_zoom, reset, save, ywheel_zoom')
 
         # loop through fast5 files and plot a line for each of their occurrence
         # of the motif.
@@ -573,14 +617,26 @@ class Fast5(object):
 
                 x = _generate_line_plot_xs(signal_df['pos'])
                 y = signal_df[yaxis]
-                ax.plot(x, y, linewidth=linewidth, alpha=alpha,
-                         color=colours[idx])
+                plot.line(x, y,
+                          line_width=linewidth,
+                          alpha=alpha,
+                          color=colours[idx],
+                          legend=fast5.name)
 
-        if save:
-            fig.savefig(save, dpi=300)
+        # configure the legend
+        if legend:
+            plot.legend.location = 'top_right'
+            plot.legend.click_policy = 'hide'  # clicking group will hide it
+            plot.legend.label_text_font = 'roboto'
+            plot.legend.background_fill_alpha = 0
 
-        plt.show()
-        plt.close()
+        if save_as:
+            saved_as = bokeh_save(plot,
+                                  filename='{}.html'.format(save_as),
+                                  title=title)
+            print('Plot saved as {}'.format(saved_as))
+
+        return plot
 
 
 def flatten_list(xs):
