@@ -251,9 +251,12 @@ class Sample(object):
             for fast5 in sample:
                 motif_idxs = fast5.motif_indices(motif)
                 for i in motif_idxs:
-                    signal_df = \
-                        fast5.extract_motif_signal(i, threshold=threshold)
-                    x = generate_line_plot_xs(signal_df['pos'])
+                    signal_df = fast5.extract_motif_signal(i)
+
+                    if threshold:
+                        signal_df = _filter_signal(signal_df, threshold, yaxis)
+
+                    x = _generate_line_plot_xs(signal_df['pos'])
                     y = signal_df[yaxis]
                     ax.plot(x, y, linewidth=linewidth, alpha=alpha,
                              color=colours[idx])
@@ -390,19 +393,13 @@ class Fast5(object):
         return [m.span(1)
                 for m in re.finditer(r'(?=({}))'.format(motif.regex()), seq)]
 
-    def extract_motif_signal(self, idx, threshold=None, threshold_signal=None):
+    def extract_motif_signal(self, idx):
         """For a given start/end index for a motif, will extract the raw signal
         associated with each base in the motif.
 
         Args:
             idx (tuple[int, int]): tuple containing the start and end index
             within in the raw signal array that the motif maps to. (start, end).
-            threshold (int | tuple[int, int]): Filter out reads with a raw
-            signal over this. If single value, the range will be
-            [-threshold, threshold]. If a tuple is provided, the lower is bound
-             is the first and the upper the second element.
-            threshold_signal (str): Indicates which signal to threshold.
-            'signal' (raw) or 'signal_norm' (median normalised).
 
         Returns:
             pd.DataFrame: Each row has the raw signal, the base that
@@ -422,17 +419,6 @@ class Fast5(object):
 
         signal_dict = self._extract_raw_signal(starts, lengths, bases)
         signal_df = pd.DataFrame.from_dict(signal_dict)
-
-        if threshold:
-            if isinstance(threshold, tuple):
-                lower = threshold[0]
-                upper = threshold[1]
-            else:
-                lower = -threshold
-                upper = threshold
-
-            signal_df = signal_df[signal_df[threshold_signal]
-                .between(lower, upper, inclusive=True)]
 
         signal_df['motif'] = ''.join(bases)
         return signal_df
@@ -579,8 +565,12 @@ class Fast5(object):
         for idx, fast5 in enumerate(against):
             motif_idxs = fast5.motif_indices(motif)
             for i in motif_idxs:
-                signal_df = fast5.extract_motif_signal(i, threshold=threshold)
-                x = generate_line_plot_xs(signal_df['pos'])
+                signal_df = fast5.extract_motif_signal(i)
+
+                if threshold:
+                    signal_df = _filter_signal(signal_df, threshold, yaxis)
+
+                x = _generate_line_plot_xs(signal_df['pos'])
                 y = signal_df[yaxis]
                 ax.plot(x, y, linewidth=linewidth, alpha=alpha,
                          color=colours[idx])
@@ -605,7 +595,7 @@ def flatten_list(xs):
     return list(chain.from_iterable(xs))
 
 
-def is_list_empty(xs):
+def _is_list_empty(xs):
     """Determines if a list is truly empty.
 
     Goes through a given list recursively and checks whether all sequence
@@ -613,7 +603,7 @@ def is_list_empty(xs):
 
     Example:
         xs = [{}, [], set(), '']
-        is_list_empty(xs)  # True
+        _is_list_empty(xs)  # True
 
     Args:
         xs (list): List of anything.
@@ -623,12 +613,12 @@ def is_list_empty(xs):
 
     """
     try:
-        return all(is_list_empty(x) for x in xs)
+        return all(_is_list_empty(x) for x in xs)
     except TypeError:
         return False
 
 
-def generate_line_plot_xs(xs):
+def _generate_line_plot_xs(xs):
     """Generates x axis coordinates for producing a line plot of signals.
 
     As each event has a variable length, in order to plot a bunch of events
@@ -642,7 +632,7 @@ def generate_line_plot_xs(xs):
 
     Examples:
         xs = [0, 0, 1, 1, 1, 1, 2, 2, 0, 0]
-        generate_line_plot_xs(xs)
+        _generate_line_plot_xs(xs)
         >>> [0.0, 0.5, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 0.0, 0.5]
 
     Args:
@@ -661,3 +651,32 @@ def generate_line_plot_xs(xs):
                        for pos in range(event_len)]
         x_coords.extend(pos_as_perc)
     return x_coords
+
+
+def _filter_signal(signal_df, threshold, signal):
+    """Filters the signal to plot based on given thresholds.
+
+    Args:
+        signal_df (pd.DataFrame): The dataframe containing all the data to
+         be plotted.
+        threshold (int | tuple[int, int]): Filter out reads with a raw
+        signal over this. If single value, the range will be
+        [-threshold, threshold]. If a tuple is provided, the lower is bound
+         is the first and the upper the second element.
+        signal (str): Threshold applies to which signal type? raw ('signal')
+         or normalised ('signal_norm').
+
+    Returns:
+        (pd.DataFrame): The dataframe with the rows outside the threshold
+        removed.
+
+    """
+    if isinstance(threshold, tuple):
+        lower = threshold[0]
+        upper = threshold[1]
+    else:
+        lower = -threshold
+        upper = threshold
+
+    return signal_df[signal_df[signal].between(lower, upper,
+                                               inclusive=True)]
