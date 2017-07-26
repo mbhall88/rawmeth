@@ -251,7 +251,8 @@ class Sample(object):
         against.append(self)
 
         # get list of colours for specified colour map
-        colours = palettes.all_palettes[colour_map][len(against)]
+        cmap = palettes.all_palettes[colour_map]
+        colours = cmap[cmap.keys()[-1]]
 
         title = 'Nanopore signal across {} motif'.format(motif)
         ylabel = 'Raw Signal (pA)' if yaxis == 'signal' else 'Normalised Signal'
@@ -593,7 +594,8 @@ class Fast5(object):
         against.append(self)
 
         # get list of colours for specified colour map
-        colours = palettes.all_palettes[colour_map][len(against)]
+        cmap = palettes.all_palettes[colour_map]
+        colours = cmap[cmap.keys()[-1]]
 
         title = 'Nanopore signal across {} motif'.format(motif)
         ylabel = 'Raw Signal (pA)' if yaxis == 'signal' else 'Normalised Signal'
