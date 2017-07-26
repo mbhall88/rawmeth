@@ -12,6 +12,7 @@ from __future__ import print_function
 import re
 import glob
 import os
+from bokeh.plotting import figure, output_file
 from itertools import chain, groupby
 import h5py as h5
 import matplotlib.pyplot as plt
