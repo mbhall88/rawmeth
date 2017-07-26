@@ -12,12 +12,11 @@ from __future__ import print_function
 import re
 import glob
 import os
+from itertools import chain, groupby
 from bokeh import palettes
 from bokeh.io import save as bokeh_save
-from bokeh.plotting import figure, output_file
-from itertools import chain, groupby
+from bokeh.plotting import figure
 import h5py as h5
-import matplotlib.pyplot as plt
 import pandas as pd
 
 
