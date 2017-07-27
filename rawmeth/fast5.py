@@ -22,6 +22,9 @@ import h5py as h5
 import pandas as pd
 
 
+LENGTH_FILTER = 100
+
+
 class Motif(str):
     """Class that is used to store a DNA motif.
 
@@ -276,7 +279,7 @@ class Sample(object):
                       plot_height=figsize[1],
                       title=title,
                       y_axis_label=ylabel,
-                      x_axis_label='Motif ({})'.format(motif),
+                      x_axis_label='Motif',
                       tools='ypan, box_zoom, reset, save, ywheel_zoom')
 
         # loop through sample files and plot a line for each of their occurrence
@@ -489,6 +492,12 @@ class Fast5(object):
         motif_events = self.events[slice(*idx)]
         for event in motif_events:
             start, length, base = list(event)[2:]
+
+            # todo: make this a little more robust
+            # FILTER OUT EVENTS LONGER THAN 100
+            if length > LENGTH_FILTER:
+                continue
+
             starts.append(start)
             lengths.append(length)
             bases.append(base)
@@ -649,7 +658,7 @@ class Fast5(object):
                       plot_height=figsize[1],
                       title=title,
                       y_axis_label=ylabel,
-                      x_axis_label='Motif ({})'.format(motif),
+                      x_axis_label='Motif',
                       tools='ypan, box_zoom, reset, save, ywheel_zoom')
 
         # loop through fast5 files and plot a line for each of their occurrence
