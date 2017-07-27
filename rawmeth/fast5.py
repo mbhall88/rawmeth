@@ -292,8 +292,6 @@ class Sample(object):
                 for i in motif_idxs:
                     signal_df = fast5.extract_motif_signal(i)
 
-                    # some dataframes may be empty if they have events with
-                    # length over a global threshold
                     if signal_df.empty:
                         continue
 
@@ -678,6 +676,9 @@ class Fast5(object):
             file_ys = []
             for i in motif_idxs:
                 signal_df = fast5.extract_motif_signal(i)
+
+                if signal_df.empty:
+                    continue
 
                 if threshold:
                     signal_df = _filter_signal(signal_df, threshold, yaxis)
