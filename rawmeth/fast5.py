@@ -438,7 +438,7 @@ class Fast5(object):
             r'{}/Alignment/genome_alignment$'.format(skel))
         signal_re = re.compile(r'Raw/Reads/Read_\d+/Signal$')
 
-        # TODO: fix this disgusting mess!!!
+        # fixme: fix this disgusting mess!!!
         if signal_re.match(name):
             self.signal = self.file_[name].value
         elif events_re.match(name):
@@ -494,17 +494,21 @@ class Fast5(object):
             start, length, base = list(event)[2:]
 
             # todo: make this a little more robust
-            # FILTER OUT EVENTS LONGER THAN 100
+            # filter out motifs with events longer than 100
             if length > LENGTH_FILTER:
-                continue
+                return pd.DataFrame()
 
             starts.append(start)
             lengths.append(length)
             bases.append(base)
 
         signal_dict = self._extract_raw_signal(starts, lengths, bases)
-        signal_df = pd.DataFrame.from_dict(signal_dict)
 
+        # if the dictionay is empty, return an empty dataframe
+        if not signal_dict:
+            return pd.DataFrame()
+
+        signal_df = pd.DataFrame.from_dict(signal_dict)
         signal_df['motif'] = ''.join(bases)
         return signal_df
 
