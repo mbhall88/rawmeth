@@ -14,7 +14,7 @@ import os
 import sys
 from itertools import chain, groupby
 from bokeh import palettes
-from bokeh.io import save as bokeh_save
+from bokeh.io import output_file, save as bokeh_save
 from bokeh.plotting import Figure
 from bokeh.models.tickers import FixedTicker
 from bokeh.models import FuncTickFormatter
@@ -342,8 +342,10 @@ class Sample(object):
         plot.xaxis.formatter = axis_formatter
 
         if save_as:
+            filename = '{}.html'.format(save_as)
+            output_file(filename, title=title)
             saved_as = bokeh_save(plot,
-                                  filename='{}.html'.format(save_as),
+                                  filename=filename,
                                   title=title)
             print('Plot saved as {}'.format(saved_as))
 
@@ -716,8 +718,10 @@ class Fast5(object):
         plot.xaxis.formatter = axis_formatter
 
         if save_as:
+            filename = '{}.html'.format(save_as)
+            output_file(filename, title=title)
             saved_as = bokeh_save(plot,
-                                  filename='{}.html'.format(save_as),
+                                  filename=filename,
                                   title=title)
             print('Plot saved as {}'.format(saved_as))
 
