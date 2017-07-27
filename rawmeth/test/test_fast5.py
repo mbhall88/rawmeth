@@ -109,9 +109,17 @@ class TestMotif:
         """Tests the Motif method for constructing regular expressions.
 
         Args:
-            gwad ():
+            gwad (Motif): GWAD motif
         """
         assert gwad.regex() == 'G[AT]A[^C]'
+
+    def test_motif_length(self, gwad):
+        """Tests the length property is functioning correctly
+
+        Args:
+            gwad (Motif): GWAD motif
+        """
+        assert gwad.length == 4
 
 ############################################################################
 # Fast5 tests
@@ -306,7 +314,7 @@ class TestFast5:
 
 
 ############################################################################
-# Fast5 tests
+# Sample tests
 
 
 class TestSample:
@@ -353,6 +361,14 @@ class TestSample:
         """
         sample.name = "s10"
         assert sample.name == "s10"
+
+    def test_sample_size(self, sample):
+        """Tests the size property is functioning correctly.
+
+        Args:
+            sample (Sample): A Sample...
+        """
+        assert sample.size == 2
 
     def test_sample_index(self, sample):
         """Tests that indexing on the Sample class is functioning as expected.

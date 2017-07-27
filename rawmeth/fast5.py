@@ -6,19 +6,20 @@ This module is designed with the idea of using the dataframes produced to
 plot and explore the raw signal associated with given DNA motifs.
 
 """
-# TODO: methods combining Sample dataframes
 
 from __future__ import print_function
 import re
 import glob
-import os, sys
+import os
+import sys
 from itertools import chain, groupby
 from bokeh import palettes
 from bokeh.io import save as bokeh_save
 from bokeh.plotting import Figure
+from bokeh.models.tickers import FixedTicker
+from bokeh.models import FuncTickFormatter
 import h5py as h5
 import pandas as pd
-import numpy as np
 
 
 class Motif(str):
@@ -42,6 +43,15 @@ class Motif(str):
 
         """
         return super(Motif, cls).__new__(cls, s.upper())
+
+    @property
+    def length(self):
+        """Convenience property for getting the length of a motif.
+
+        Returns:
+            (int): The length of the motif.
+        """
+        return len(self)
 
     def complement(self):
         """Returns the DNA complement of the motif."""
@@ -180,6 +190,11 @@ class Sample(object):
         """
         self.basename = name
 
+    @property
+    def size(self):
+        """Returns the number of files in the Sample."""
+        return len(self.files)
+
     def get_motif_signal(self, motifs):
         """Constructs a dataframe of all raw signals for a motif within sample.
 
@@ -267,7 +282,6 @@ class Sample(object):
         # loop through sample files and plot a line for each of their occurrence
         # of the motif.
         for idx, sample in enumerate(against):
-            length = len(sample.files)
             sample_xs = []
             sample_ys = []
             for f5_idx, fast5 in enumerate(sample):
@@ -280,13 +294,22 @@ class Sample(object):
 
                     sample_xs.append(_generate_line_plot_xs(signal_df['pos']))
                     sample_ys.append(signal_df[yaxis])
-                print('{}% of data added for {}         '.format(round(float(f5_idx)/length, 3)*100, sample.name), end='\r')
+
+                # print update of how far along the plotting is
+                perc_complete = round(float(f5_idx) / sample.size, 3) * 100
+                print('{}% of data added for {}'
+                      '                    '.format(perc_complete, sample.name),
+                      end='\r')
                 sys.stdout.flush()
-            plot.multi_line(sample_xs, sample_ys,
-                      line_width=linewidth,
-                      alpha=alpha,
-                      color=colours[idx],
-                      legend=sample.name)
+
+            # plot all lines for sample
+            plot.multi_line(sample_xs,
+                            sample_ys,
+                            line_width=linewidth,
+                            alpha=alpha,
+                            color=colours[idx],
+                            legend=sample.name)
+
             print('Plotting finished for {}'.format(sample.name))
 
         # configure the legend
@@ -295,6 +318,22 @@ class Sample(object):
             plot.legend.click_policy = 'hide'  # clicking group will hide it
             plot.legend.label_text_font = 'roboto'
             plot.legend.background_fill_alpha = 0
+
+        # format the axes
+        plot.xaxis.minor_tick_line_color = None
+        plot.xaxis.axis_line_color = None
+        plot.xaxis.bounds = (0.5, motif.length - 0.5)
+        plot.xaxis.major_tick_line_color = None
+
+        ticks = [x + 0.5 for x in range(motif.length)]
+        plot.xaxis.ticker = FixedTicker(ticks=ticks)
+        label_dict = {i + 0.5: label for i, label in enumerate(motif)}
+
+        # creates a function that will map the xaxis label to it's base.
+        axis_formatter = FuncTickFormatter(
+            code='var labels = {};'
+                 'return labels[+tick];'.format(label_dict))
+        plot.xaxis.formatter = axis_formatter
 
         if save_as:
             saved_as = bokeh_save(plot,
@@ -606,7 +645,7 @@ class Fast5(object):
         title = 'Nanopore signal across {} motif'.format(motif)
         ylabel = 'Raw Signal (pA)' if yaxis == 'signal' else 'Normalised Signal'
 
-        plot = figure(plot_width=figsize[0],
+        plot = Figure(plot_width=figsize[0],
                       plot_height=figsize[1],
                       title=title,
                       y_axis_label=ylabel,
@@ -617,19 +656,22 @@ class Fast5(object):
         # of the motif.
         for idx, fast5 in enumerate(against):
             motif_idxs = fast5.motif_indices(motif)
+            file_xs = []
+            file_ys = []
             for i in motif_idxs:
                 signal_df = fast5.extract_motif_signal(i)
 
                 if threshold:
                     signal_df = _filter_signal(signal_df, threshold, yaxis)
 
-                x = _generate_line_plot_xs(signal_df['pos'])
-                y = signal_df[yaxis]
-                plot.line(x, y,
-                          line_width=linewidth,
-                          alpha=alpha,
-                          color=colours[idx],
-                          legend=fast5.name)
+                file_xs.append(_generate_line_plot_xs(signal_df['pos']))
+                file_ys.append(signal_df[yaxis])
+            plot.multi_line(file_xs,
+                            file_ys,
+                            line_width=linewidth,
+                            alpha=alpha,
+                            color=colours[idx],
+                            legend=fast5.name)
 
         # configure the legend
         if legend:
@@ -637,6 +679,22 @@ class Fast5(object):
             plot.legend.click_policy = 'hide'  # clicking group will hide it
             plot.legend.label_text_font = 'roboto'
             plot.legend.background_fill_alpha = 0
+
+        # format the axes
+        plot.xaxis.minor_tick_line_color = None
+        plot.xaxis.axis_line_color = None
+        plot.xaxis.bounds = (0.5, motif.length - 0.5)
+        plot.xaxis.major_tick_line_color = None
+
+        ticks = [x + 0.5 for x in range(motif.length)]
+        plot.xaxis.ticker = FixedTicker(ticks=ticks)
+        label_dict = {i + 0.5: label for i, label in enumerate(motif)}
+
+        # creates a function that will map the xaxis label to it's base.
+        axis_formatter = FuncTickFormatter(
+            code='var labels = {};'
+                 'return labels[+tick];'.format(label_dict))
+        plot.xaxis.formatter = axis_formatter
 
         if save_as:
             saved_as = bokeh_save(plot,
@@ -715,7 +773,7 @@ def _generate_line_plot_xs(xs):
         pos_as_perc = [(float(pos) / event_len) + int(key)
                        for pos in range(event_len)]
         x_coords.extend(pos_as_perc)
-    return np.array(x_coords)
+    return x_coords
 
 
 def _filter_signal(signal_df, threshold, signal):
