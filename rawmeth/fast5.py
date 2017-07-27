@@ -11,13 +11,14 @@ plot and explore the raw signal associated with given DNA motifs.
 from __future__ import print_function
 import re
 import glob
-import os
+import os, sys
 from itertools import chain, groupby
 from bokeh import palettes
 from bokeh.io import save as bokeh_save
-from bokeh.plotting import figure
+from bokeh.plotting import Figure
 import h5py as h5
 import pandas as pd
+import numpy as np
 
 
 class Motif(str):
@@ -256,17 +257,20 @@ class Sample(object):
         title = 'Nanopore signal across {} motif'.format(motif)
         ylabel = 'Raw Signal (pA)' if yaxis == 'signal' else 'Normalised Signal'
 
-        plot = figure(plot_width=figsize[0],
+        plot = Figure(plot_width=figsize[0],
                       plot_height=figsize[1],
                       title=title,
                       y_axis_label=ylabel,
                       x_axis_label='Motif ({})'.format(motif),
-                      tools='pan, box_zoom, reset, save, ywheel_zoom')
+                      tools='ypan, box_zoom, reset, save, ywheel_zoom')
 
         # loop through sample files and plot a line for each of their occurrence
         # of the motif.
         for idx, sample in enumerate(against):
-            for fast5 in sample:
+            length = len(sample.files)
+            sample_xs = []
+            sample_ys = []
+            for f5_idx, fast5 in enumerate(sample):
                 motif_idxs = fast5.motif_indices(motif)
                 for i in motif_idxs:
                     signal_df = fast5.extract_motif_signal(i)
@@ -274,13 +278,16 @@ class Sample(object):
                     if threshold:
                         signal_df = _filter_signal(signal_df, threshold, yaxis)
 
-                    x = _generate_line_plot_xs(signal_df['pos'])
-                    y = signal_df[yaxis]
-                    plot.line(x, y,
-                              line_width=linewidth,
-                              alpha=alpha,
-                              color=colours[idx],
-                              legend=sample.name)
+                    sample_xs.append(_generate_line_plot_xs(signal_df['pos']))
+                    sample_ys.append(signal_df[yaxis])
+                print('{}% of data added for {}         '.format(round(float(f5_idx)/length, 3)*100, sample.name), end='\r')
+                sys.stdout.flush()
+            plot.multi_line(sample_xs, sample_ys,
+                      line_width=linewidth,
+                      alpha=alpha,
+                      color=colours[idx],
+                      legend=sample.name)
+            print('Plotting finished for {}'.format(sample.name))
 
         # configure the legend
         if legend:
@@ -604,7 +611,7 @@ class Fast5(object):
                       title=title,
                       y_axis_label=ylabel,
                       x_axis_label='Motif ({})'.format(motif),
-                      tools='pan, box_zoom, reset, save, ywheel_zoom')
+                      tools='ypan, box_zoom, reset, save, ywheel_zoom')
 
         # loop through fast5 files and plot a line for each of their occurrence
         # of the motif.
@@ -708,7 +715,7 @@ def _generate_line_plot_xs(xs):
         pos_as_perc = [(float(pos) / event_len) + int(key)
                        for pos in range(event_len)]
         x_coords.extend(pos_as_perc)
-    return x_coords
+    return np.array(x_coords)
 
 
 def _filter_signal(signal_df, threshold, signal):
