@@ -294,7 +294,7 @@ class Sample(object):
 
                     # some dataframes may be empty if they have events with
                     # length over a global threshold
-                    if not signal_df:
+                    if signal_df.empty:
                         continue
 
                     if threshold:
