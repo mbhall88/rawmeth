@@ -310,7 +310,7 @@ class Sample(object):
                             color=colours[idx],
                             legend=sample.name)
 
-            print('Plotting finished for {}'.format(sample.name))
+            print('Plotting finished for {}              '.format(sample.name))
 
         # configure the legend
         if legend:
