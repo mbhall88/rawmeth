@@ -2,13 +2,14 @@
 This module is intended to handle plotting data for Samples and Fast5 files.
 """
 from __future__ import print_function
+import sys
 import warnings
-import bokeh
-# from bokeh import palettes,
-# from bokeh.io import output_file, save as bokeh_save
-# from bokeh.plotting import Figure
-# from bokeh.models.tickers import FixedTicker
-# from bokeh.models import FuncTickFormatter
+import itertools
+from bokeh import palettes
+from bokeh.io import output_file, save as bokeh_save
+from bokeh.plotting import Figure
+from bokeh.models.tickers import FixedTicker
+from bokeh.models import FuncTickFormatter
 from rawmeth import fast5
 
 
@@ -168,7 +169,7 @@ class Plot(object):
              off.
 
         """
-        fig = bokeh.plotting.Figure(
+        fig = Figure(
             plot_height=self.height,
             plot_width=self.width,
             title=self.title,
@@ -205,7 +206,7 @@ class LinePlot(Plot):
 
         """
         col_key = self.arguments['colour_map']
-        col_map = bokeh.palettes.all_palettes[col_key]
+        col_map = palettes.all_palettes[col_key]
         colours = col_map[col_map.keys()[-1]]
         return colours
 
@@ -219,7 +220,7 @@ class LinePlot(Plot):
             the possible colour maps.
 
         """
-        maps = bokeh.palettes.all_palettes.keys()
+        maps = palettes.all_palettes.keys()
         if col_map not in maps:
             raise ValueError('Colour map must be one of: {}'.format(maps))
         self.arguments['colour_map'] = col_map
@@ -241,3 +242,124 @@ class LinePlot(Plot):
         if not 0 <= level <= 1.:
             raise ValueError('Alpha must be between 0 and 1.')
         self.arguments['alpha'] = level
+
+    @property
+    def threshold(self):
+        return self.arguments['threshold']
+
+    @threshold.setter
+    def threshold(self, threshold):
+        self.arguments['threshold'] = threshold
+
+    def create_plot(self, save_as=None):
+
+        # create the figure object
+        fig = self.figure()
+
+        # if sample start loop through samples.
+        for sample_idx, sample in enumerate(self.data):
+            print('Plotting started for {}...      '.format(sample.name),
+                  end='\r')
+            sys.stdout.flush()
+            x_data, y_data = self._get_plot_data(sample)
+
+            fig.multi_line(x_data,
+                           y_data,
+                           line_width=self.line_width,
+                           alpha=self.alpha,
+                           color=self.colours[sample_idx],
+                           legend=sample.name)
+            print('Plotting finished for {}        '.format(sample.name))
+
+        # else loop through fast5 files.
+
+        fig = self._axis_formatting(fig)
+
+    def _axis_formatting(self, fig):
+        fig.xaxis.minor_tick_line_color = None
+        fig.xaxis.axis_line_color = None
+        fig.xaxis.bounds = (0.5, len(self.motif) - 0.5)
+        fig.xaxis.major_tick_line_color = None
+
+        ticks = [x + 0.5 for x in range(len(self.motif))]
+        fig.xaxis.ticker = FixedTicker(ticks=ticks)
+
+        # a dictionary to map the x position to it's motif nucleotide
+        label_dict = {i + 0.5: label
+                      for i, label in enumerate(self.motif)}
+
+        # creates a function that will map the xaxis label to it's base.
+        axis_formatter = FuncTickFormatter(
+            code='var labels = {};'
+                 'return labels[+tick];'.format(label_dict))
+        fig.xaxis.formatter = axis_formatter
+
+        return fig
+
+    def _get_plot_data(self, reads):
+        """Generates the x- and y-axis data for plotting.
+
+        Args:
+            reads (list[Fast5]): List of Fast5s to extract data from.
+
+        Returns:
+            (tuple[list[int|float], list[int|float]]): A tuple of the x and y
+            data for the line plot.
+
+        """
+        x_data = []
+        y_data = []
+
+        for read_idx, read in enumerate(reads):
+            motif_idxs = read.motif_indices(self.motif)
+
+            for i in motif_idxs:
+                signal_df = read.extract_motif_signal(i)
+
+                if signal_df.empty:
+                    continue
+
+                if self.threshold:
+                    signal_df = signal_df[signal_df[self.y_variable]
+                        .between(self.threshold[0], self.threshold[1],
+                                 inclusive=True)]
+
+                x_data.append(_generate_line_plot_xs(signal_df['pos']))
+                y_data.append(signal_df[self.y_variable])
+
+        return x_data, y_data
+
+
+def _generate_line_plot_xs(xs):
+    """Generates x axis coordinates for producing a line plot of signals.
+
+    As each event has a variable length, in order to plot a bunch of events
+    together they need to be 'squashed' into the same x-axis domain.
+    This is done by grouping all of the signals for a single event together,
+    iterating through them and dividing their position in the event by the
+    length of the event. This is effectively calculating the position in the
+    event as a percentage of the way from the start to the end. NOTE: The
+    position as a percentage is 0 indexed. i.e [0, 0] => [0.0, 0.5] not
+    [0.5, 1.0]
+
+    Examples:
+        xs = [0, 0, 1, 1, 1, 1, 2, 2, 0, 0]
+        _generate_line_plot_xs(xs)
+        >>> [0.0, 0.5, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 0.0, 0.5]
+
+    Args:
+        xs (list): A list of integers or floats.
+
+    Returns:
+        x_coords (list[float]): A list of the x-coordinates to use to
+        'squash` the given events onto the same x-axis domain.
+
+    """
+    x_coords = []
+    xs_generator = itertools.groupby(xs)
+    for key, gen in xs_generator:
+        event_len = sum(1 for _ in gen)
+        pos_as_perc = [(float(pos) / event_len) + int(key)
+                       for pos in range(event_len)]
+        x_coords.extend(pos_as_perc)
+    return x_coords

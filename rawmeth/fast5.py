@@ -47,15 +47,6 @@ class Motif(str):
         """
         return super(Motif, cls).__new__(cls, s.upper())
 
-    @property
-    def length(self):
-        """Convenience property for getting the length of a motif.
-
-        Returns:
-            (int): The length of the motif.
-        """
-        return len(self)
-
     def complement(self):
         """Returns the DNA complement of the motif."""
         dna_table = {
@@ -269,67 +260,67 @@ class Sample(object):
         against.append(self)
 
         # get list of colours for specified colour map
-        cmap = palettes.all_palettes[colour_map]
-        colours = cmap[cmap.keys()[-1]]
+        # cmap = palettes.all_palettes[colour_map]
+        # colours = cmap[cmap.keys()[-1]]
 
-        title = 'Nanopore signal across {} motif'.format(motif)
-        ylabel = 'Raw Signal (pA)' if yaxis == 'signal' else 'Normalised Signal'
-
-        plot = Figure(plot_width=figsize[0],
-                      plot_height=figsize[1],
-                      title=title,
-                      y_axis_label=ylabel,
-                      x_axis_label='Motif',
-                      tools='ypan, box_zoom, reset, save, ywheel_zoom')
+        # title = 'Nanopore signal across {} motif'.format(motif)
+        # ylabel = 'Raw Signal (pA)' if yaxis == 'signal' else 'Normalised Signal'
+        #
+        # plot = Figure(plot_width=figsize[0],
+        #               plot_height=figsize[1],
+        #               title=title,
+        #               y_axis_label=ylabel,
+        #               x_axis_label='Motif',
+        #               tools='ypan, box_zoom, reset, save, ywheel_zoom')
 
         # loop through sample files and plot a line for each of their occurrence
         # of the motif.
-        for idx, sample in enumerate(against):
-            sample_xs = []
-            sample_ys = []
-            for f5_idx, fast5 in enumerate(sample):
-                motif_idxs = fast5.motif_indices(motif)
-                for i in motif_idxs:
-                    signal_df = fast5.extract_motif_signal(i)
-
-                    if signal_df.empty:
-                        continue
-
-                    if threshold:
-                        signal_df = _filter_signal(signal_df, threshold, yaxis)
-
-                    sample_xs.append(_generate_line_plot_xs(signal_df['pos']))
-                    sample_ys.append(signal_df[yaxis])
+        # for idx, sample in enumerate(against):
+            # sample_xs = []
+            # sample_ys = []
+            # for f5_idx, fast5 in enumerate(sample):
+            #     motif_idxs = fast5.motif_indices(motif)
+            #     for i in motif_idxs:
+            #         signal_df = fast5.extract_motif_signal(i)
+            #
+            #         if signal_df.empty:
+            #             continue
+            #
+            #         if threshold:
+            #             signal_df = _filter_signal(signal_df, threshold, yaxis)
+            #
+            #         sample_xs.append(_generate_line_plot_xs(signal_df['pos']))
+            #         sample_ys.append(signal_df[yaxis])
 
                 # print update of how far along the plotting is
-                perc_complete = round(float(f5_idx) / sample.size, 3) * 100
-                print('{}% of data added for {}'
-                      '                    '.format(perc_complete, sample.name),
-                      end='\r')
-                sys.stdout.flush()
+                # perc_complete = round(float(f5_idx) / sample.size, 3) * 100
+                # print('{}% of data added for {}'
+                #       '                    '.format(perc_complete, sample.name),
+                #       end='\r')
+                # sys.stdout.flush()
 
             # plot all lines for sample
-            plot.multi_line(sample_xs,
-                            sample_ys,
-                            line_width=linewidth,
-                            alpha=alpha,
-                            color=colours[idx],
-                            legend=sample.name)
-
-            print('Plotting finished for {}              '.format(sample.name))
+            # plot.multi_line(sample_xs,
+            #                 sample_ys,
+            #                 line_width=linewidth,
+            #                 alpha=alpha,
+            #                 color=colours[idx],
+            #                 legend=sample.name)
+            #
+            # print('Plotting finished for {}              '.format(sample.name))
 
         # configure the legend
-        if legend:
-            plot.legend.location = 'top_right'
-            plot.legend.click_policy = 'hide'  # clicking group will hide it
-            plot.legend.label_text_font = 'roboto'
-            plot.legend.background_fill_alpha = 0
+        # if legend:
+        #     plot.legend.location = 'top_right'
+        #     plot.legend.click_policy = 'hide'  # clicking group will hide it
+        #     plot.legend.label_text_font = 'roboto'
+        #     plot.legend.background_fill_alpha = 0
 
         # format the axes
-        plot.xaxis.minor_tick_line_color = None
-        plot.xaxis.axis_line_color = None
-        plot.xaxis.bounds = (0.5, motif.length - 0.5)
-        plot.xaxis.major_tick_line_color = None
+        # plot.xaxis.minor_tick_line_color = None
+        # plot.xaxis.axis_line_color = None
+        # plot.xaxis.bounds = (0.5, motif.length - 0.5)
+        # plot.xaxis.major_tick_line_color = None
 
         ticks = [x + 0.5 for x in range(motif.length)]
         plot.xaxis.ticker = FixedTicker(ticks=ticks)
