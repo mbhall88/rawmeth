@@ -5,6 +5,7 @@ from __future__ import print_function
 import sys
 import warnings
 import itertools
+from copy import deepcopy
 from bokeh import palettes
 from bokeh.io import output_file, save as bokeh_save
 from bokeh.plotting import Figure
@@ -49,7 +50,7 @@ class Plot(object):
             TODO: add docs for defaults
 
         """
-        self.valid_args = DEFAULT_ARGS.keys()[:]
+        self.valid_args = deepcopy(DEFAULT_ARGS)
         self.arguments = self._parse_kwargs(**kwargs)
 
     def __repr__(self):
@@ -67,7 +68,7 @@ class Plot(object):
             (dict): A dictionary of the parameters to use to generate the plot.
 
         """
-        args = DEFAULT_ARGS[:]
+        args = deepcopy(DEFAULT_ARGS)
 
         for key, value in kwargs.items():
             if key not in self.valid_args:
@@ -191,7 +192,12 @@ class LinePlot(Plot):
 
     def __init__(self, data, motif, y_variable, **kwargs):
         self.motif = fast5.Motif(motif)
-        self.data = data
+
+        if not isinstance(data, list):
+            self.data = [data]
+        else:
+            self.data = data
+
         self.y_variable = y_variable
         super(LinePlot, self).__init__(**kwargs)
 
@@ -261,8 +267,11 @@ class LinePlot(Plot):
             print('Plotting started for {}...      '.format(sample.name),
                   end='\r')
             sys.stdout.flush()
+
+            # generate the x and y axis data
             x_data, y_data = self._get_plot_data(sample)
 
+            # add lines for this sample to the plot
             fig.multi_line(x_data,
                            y_data,
                            line_width=self.line_width,
@@ -274,6 +283,19 @@ class LinePlot(Plot):
         # else loop through fast5 files.
 
         fig = self._axis_formatting(fig)
+
+        if save_as:
+            self.save_plot(fig, save_as)
+
+        return fig
+
+    def save_plot(self, fig, save_as):
+        filename = '{}.html'.format(save_as)
+        output_file(filename, title=self.title)
+        saved_as = bokeh_save(fig,
+                              filename=filename,
+                              title=self.title)
+        print('Plot saved as {}'.format(saved_as))
 
     def _axis_formatting(self, fig):
         fig.xaxis.minor_tick_line_color = None

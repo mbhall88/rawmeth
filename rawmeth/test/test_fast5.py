@@ -119,7 +119,7 @@ class TestMotif:
         Args:
             gwad (Motif): GWAD motif
         """
-        assert gwad.length == 4
+        assert len(gwad) == 4
 
 ############################################################################
 # Fast5 tests

@@ -322,25 +322,25 @@ class Sample(object):
         # plot.xaxis.bounds = (0.5, motif.length - 0.5)
         # plot.xaxis.major_tick_line_color = None
 
-        ticks = [x + 0.5 for x in range(motif.length)]
-        plot.xaxis.ticker = FixedTicker(ticks=ticks)
-        label_dict = {i + 0.5: label for i, label in enumerate(motif)}
+        # ticks = [x + 0.5 for x in range(motif.length)]
+        # plot.xaxis.ticker = FixedTicker(ticks=ticks)
+        # label_dict = {i + 0.5: label for i, label in enumerate(motif)}
+        #
+        # # creates a function that will map the xaxis label to it's base.
+        # axis_formatter = FuncTickFormatter(
+        #     code='var labels = {};'
+        #          'return labels[+tick];'.format(label_dict))
+        # plot.xaxis.formatter = axis_formatter
 
-        # creates a function that will map the xaxis label to it's base.
-        axis_formatter = FuncTickFormatter(
-            code='var labels = {};'
-                 'return labels[+tick];'.format(label_dict))
-        plot.xaxis.formatter = axis_formatter
-
-        if save_as:
-            filename = '{}.html'.format(save_as)
-            output_file(filename, title=title)
-            saved_as = bokeh_save(plot,
-                                  filename=filename,
-                                  title=title)
-            print('Plot saved as {}'.format(saved_as))
-
-        return plot
+        # if save_as:
+        #     filename = '{}.html'.format(save_as)
+        #     output_file(filename, title=title)
+        #     saved_as = bokeh_save(plot,
+        #                           filename=filename,
+        #                           title=title)
+        #     print('Plot saved as {}'.format(saved_as))
+        #
+        # return plot
 
 
 class Fast5(object):
