@@ -30,7 +30,6 @@ DEFAULT_ARGS = {
 
 
 class Plot(object):
-
     """This is a base class that is not intended for direct use.
 
     This class handles parsing of the arguments for plotting and setting up the
@@ -121,6 +120,7 @@ class Plot(object):
 
         Args:
             title (str): The desired title.
+
         """
         self.arguments['title'] = title
 
@@ -135,6 +135,7 @@ class Plot(object):
 
         Args:
             label (str): The desired y-axis label.
+
         """
         self.arguments['y_axis_label'] = label
 
@@ -149,6 +150,7 @@ class Plot(object):
 
         Args:
             label (str): The desired x-axis label.
+
         """
         self.arguments['x_axis_label'] = label
 
@@ -158,6 +160,7 @@ class Plot(object):
 
         Returns:
             DEFAULT_ARGS (dict): The default arguments dictionary.
+
         """
         return DEFAULT_ARGS
 
@@ -189,8 +192,41 @@ class Plot(object):
 
 
 class LinePlot(Plot):
+    """Produces a line plot of the raw signal events related to the given
+     motif.
 
+
+
+    """
     def __init__(self, data, motif, y_variable, **kwargs):
+        """Initialise a line plot for plotting the signal of fast5 files within
+        a sample over a given motif.
+
+        Args:
+            data (list[Sample]): A list of Samples to plot.
+            motif (Motif): The motif to plot signal for.
+            y_variable (str): Variable to plot on the y-axis.
+            **kwargs (dict): Arguments to format the plot. These include:
+                plot_height (int): Height of plot in pixels.
+                plot_width (int): Width of plot in pixels.
+                title (str): Titlt for the plot.
+                y_axis_label (str): Label for the y-axis
+                x_axis_label (str): Label for the x-axis
+                tools (str): Tools to add to the plot HTML. See
+                http://bokeh.pydata.org/en/latest/docs/user_guide/tools.html
+                for options.
+                legend (bool): Whether or not to add a legend to the plot.
+                alpha (float|int): The alpha (opacity) of the line. Must be
+                between 0 and 1.
+                linewidth (float|int): The width of the lines.
+                colour_map (str): The colour scheme to use. See
+                http://bokeh.pydata.org/en/latest/docs/reference/palettes.html
+                for a list of available sets.
+                threshold (tuple(int, int)): Limit the y-axis to the given
+                threshold. The first element is the lower bound, second is the
+                upper.
+
+        """
         self.motif = fast5.Motif(motif)
 
         if not isinstance(data, list):
@@ -233,36 +269,76 @@ class LinePlot(Plot):
 
     @property
     def line_width(self):
+        """Returns the current line width for the plot."""
         return self.arguments['linewidth']
 
     @line_width.setter
     def line_width(self, linewidth):
+        """Sets the line width for the plot.
+
+        Args:
+            linewidth (int|float): Line width value for the lines.
+
+        """
         self.arguments['linewidth'] = linewidth
 
     @property
     def alpha(self):
+        """Returns the current alpha level for the plot."""
         return self.arguments['alpha']
 
     @alpha.setter
     def alpha(self, level):
+        """Sets the alpha (opacity) level for the plot.
+
+        Args:
+            level (int|float): Alpha level between 0 and 1.
+
+        """
         if not 0 <= level <= 1.:
             raise ValueError('Alpha must be between 0 and 1.')
         self.arguments['alpha'] = level
 
     @property
     def threshold(self):
+        """Returns the current threshold for the plot."""
         return self.arguments['threshold']
 
     @threshold.setter
     def threshold(self, threshold):
+        """Sets the current threshold level for the plot. This will filter the
+        signals those whose values fall within this threshold.
+
+        Args:
+            threshold (tuple[int, int]): The lower (first element) and upper
+            (second element) bounds for the threshold.
+
+        """
         self.arguments['threshold'] = threshold
 
     def create_plot(self, save_as=None):
+        """Creates the figure object that can be used to view the plot in a
+        notebook environment, or to save to a file. If save_as is provided, the
+        plot will be saved to a HTML file. Within this file you can interact
+        with the plot (zoom, pan etc.) and save to PNG from the HTML view.
 
+        Args:
+            save_as (str): The file path to save the plot as. No file extension
+            is required as .html will be added to the end of whatever argument
+            is given.
+
+        Returns:
+            fig (bokeh.plotting.Figure): A figure object that can be viewed in
+            an interactive environment such as a notebook. Or additional
+            settings on the plot can be manipulated (using the Bokeh
+            documentation).
+
+        """
         # create the figure object
         fig = self.figure()
 
-        # if sample start loop through samples.
+        # loop through the sample and generate the data to create the lines for
+        # each fast5 file in the sample.
         for sample_idx, sample in enumerate(self.data):
             print('Plotting started for {}...      '.format(sample.name),
                   end='\r')
@@ -280,8 +356,7 @@ class LinePlot(Plot):
                            legend=sample.name)
             print('Plotting finished for {}        '.format(sample.name))
 
-        # else loop through fast5 files.
-
+        # apply axis formatting to the figure
         fig = self._axis_formatting(fig)
 
         if save_as:
@@ -290,6 +365,14 @@ class LinePlot(Plot):
         return fig
 
     def save_plot(self, fig, save_as):
+        """Saves the plot to HTML.
+
+        Args:
+            fig (bokeh.plotting.Figure): A bokeh figure object.
+            save_as (str): The path name to save the file as. No file extension
+            should be specified.
+
+        """
         filename = '{}.html'.format(save_as)
         output_file(filename, title=self.title)
         saved_as = bokeh_save(fig,
@@ -298,11 +381,25 @@ class LinePlot(Plot):
         print('Plot saved as {}'.format(saved_as))
 
     def _axis_formatting(self, fig):
-        fig.xaxis.minor_tick_line_color = None
-        fig.xaxis.axis_line_color = None
-        fig.xaxis.bounds = (0.5, len(self.motif) - 0.5)
-        fig.xaxis.major_tick_line_color = None
+        """Formats the axis for the line plot.
 
+        Args:
+            fig (bokeh.plotting.Figure): A bokeh Figure object.
+
+        Returns:
+            fig (bokeh.plotting.Figure): A bokeh Figure object with the axes
+            formatted as required for the line plot.
+
+        """
+        # removes the x-axis ticks
+        fig.xaxis.minor_tick_line_color = None
+        fig.xaxis.major_tick_line_color = None
+        # removes the x-axis line
+        fig.xaxis.axis_line_color = None
+        # limit the axis tick label bounds so they line up in the middle of each
+        # base of the motif
+        fig.xaxis.bounds = (0.5, len(self.motif) - 0.5)
+        # force the x-axis ticks to line up with the middle of each event
         ticks = [x + 0.5 for x in range(len(self.motif))]
         fig.xaxis.ticker = FixedTicker(ticks=ticks)
 
@@ -310,7 +407,7 @@ class LinePlot(Plot):
         label_dict = {i + 0.5: label
                       for i, label in enumerate(self.motif)}
 
-        # creates a function that will map the xaxis label to it's base.
+        # creates a function that will map the x-axis label to it's motif base.
         axis_formatter = FuncTickFormatter(
             code='var labels = {};'
                  'return labels[+tick];'.format(label_dict))
@@ -332,7 +429,8 @@ class LinePlot(Plot):
         x_data = []
         y_data = []
 
-        for read_idx, read in enumerate(reads):
+        for read in reads:
+            # get the indices of where motif occurs within this read
             motif_idxs = read.motif_indices(self.motif)
 
             for i in motif_idxs:
@@ -342,9 +440,10 @@ class LinePlot(Plot):
                     continue
 
                 if self.threshold:
-                    signal_df = signal_df[signal_df[self.y_variable]
-                        .between(self.threshold[0], self.threshold[1],
-                                 inclusive=True)]
+                    query = '{} <= {} <= {}'.format(self.threshold[0],
+                                                    self.y_variable,
+                                                    self.threshold[1])
+                    signal_df.query(query, inplace=True)
 
                 x_data.append(_generate_line_plot_xs(signal_df['pos']))
                 y_data.append(signal_df[self.y_variable])
