@@ -11,6 +11,7 @@ from __future__ import print_function
 import re
 import glob
 import os
+import sys
 from itertools import chain
 import h5py as h5
 import pandas as pd
@@ -128,7 +129,17 @@ class Sample(object):
             )
 
         # load fast5 files into Fast5 objects
-        self.files = filter(None, map(self._load_f5, self.file_paths))
+        self.files = []
+        num_file_paths = len(self.file_paths)
+        for i, filename in enumerate(self.file_paths):
+            fast5 = self._load_f5(filename)
+            if fast5:
+                self.files.append(fast5)
+            perc_complete = float(i) / num_file_paths * 100
+            print('{}% of files loaded for {}'
+                  '        '.format(perc_complete, self.basename), end='\r')
+            sys.stdout.flush()
+        print('All files loaded for {}            '.format(self.basename))
 
     def __getitem__(self, item):
         """Allows for indexing the Sample object.
