@@ -15,8 +15,8 @@ from rawmeth import fast5
 
 
 DEFAULT_ARGS = {
-    'plot_height': 960,
-    'plot_width': 500,
+    'plot_height': 600,
+    'plot_width': 960,
     'title': None,
     'y_axis_label': None,
     'x_axis_label': None,
