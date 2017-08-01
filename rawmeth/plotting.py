@@ -182,12 +182,6 @@ class Plot(object):
             tools=self.arguments['tools']
         )
 
-        if self.arguments['legend']:
-            fig.legend.location = 'top_right'
-            fig.legend.click_policy = 'hide'  # clicking group will hide it
-            fig.legend.label_text_font = 'roboto'
-            fig.legend.background_fill_alpha = 0
-
         return fig
 
 
@@ -358,6 +352,12 @@ class LinePlot(Plot):
 
         # apply axis formatting to the figure
         fig = self._axis_formatting(fig)
+
+        if self.arguments['legend']:
+            fig.legend.location = 'top_right'
+            fig.legend.click_policy = 'hide'  # clicking group will hide it
+            fig.legend.label_text_font = 'roboto'
+            fig.legend.background_fill_alpha = 0
 
         if save_as:
             self.save_plot(fig, save_as)
