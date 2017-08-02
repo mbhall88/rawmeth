@@ -252,9 +252,17 @@ class Sample(object):
             the values are the counts for that motif.
 
         """
-        # todo - write function.
-        # todo - merge feature branch back into develop.
-        pass
+        # get list of all counters
+        counts = [fast5.motif_counts(motif) for fast5 in self]
+
+        # sum the list of counters by combining them
+        combined_counts = sum(counts, Counter())
+
+        if pretty_print:
+            pretty_print_counts(combined_counts)
+
+        return combined_counts
+
 
 class Fast5(object):
     """

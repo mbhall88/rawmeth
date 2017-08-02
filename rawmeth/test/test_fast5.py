@@ -1,4 +1,5 @@
 import pytest
+from copy import deepcopy
 from rawmeth.fast5 import Motif, Fast5, Sample
 
 
@@ -394,3 +395,21 @@ class TestSample:
                                  'read1072_strand.fast5'
         assert sample[1].name == 'C4_watermang_22032017_75675_ch100_' \
                                  'read38_strand.fast5'
+
+    def test_sample_motif_counts(self, empty_fast5, sample):
+        """Tests that the motif counting function is working as expected for
+        the Sample class.
+
+        Args:
+            empty_fast5 (Fast5): An empty fast5 file.
+            sample (Sample): Instance of a sample.
+
+        """
+        empty2 = deepcopy(empty_fast5)
+        empty_fast5.events = {'base': list('TCGATATCAGAGATATCTGATA')}
+        empty2.events = {'base': list('TCGATATCAGAGATATCTGATA')}
+        sample.files = [empty2, empty_fast5]
+        motif = Motif('GANAT')
+        counts = sample.motif_counts(motif)
+        answer = {'GATAT': 4, 'GAGAT': 2}
+        assert counts == answer
