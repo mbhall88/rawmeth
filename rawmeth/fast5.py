@@ -253,6 +253,7 @@ class Sample(object):
 
         """
         # todo - write function.
+        # todo - merge feature branch back into develop.
         pass
 
 class Fast5(object):
