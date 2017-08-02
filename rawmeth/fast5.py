@@ -13,6 +13,7 @@ import glob
 import os
 import sys
 from itertools import chain
+from collections import Counter
 import h5py as h5
 import pandas as pd
 
@@ -131,14 +132,19 @@ class Sample(object):
         # load fast5 files into Fast5 objects
         self.files = []
         num_file_paths = len(self.file_paths)
+
         for i, filename in enumerate(self.file_paths):
+
             fast5 = self._load_f5(filename)
+
             if fast5:
                 self.files.append(fast5)
+
             perc_complete = float(i) / num_file_paths * 100
             print('{}% of files loaded for {}'
                   '        '.format(perc_complete, self.basename), end='\r')
             sys.stdout.flush()
+
         print('All files loaded for {}            '.format(self.basename))
 
     def __getitem__(self, item):
@@ -224,6 +230,30 @@ class Sample(object):
         master_df['sample'] = self.name
         return master_df
 
+    def motif_counts(self, motif, pretty_print=False):
+        """Returns the counts for all possible variations of a given motif.
+
+        Examples:
+            >>> import re
+            >>> from collections import Counter
+            >>> seq = 'GATTGAGTGAGTGAGTGAATGAAT'
+            >>> my_re = re.compile(r'GA[ACGT]T')
+            >>> matches = my_re.findall(seq)
+            >>> Counter(matches)
+            Counter({'GAGT': 3, 'GAAT': 2, 'GATT': 1})
+
+        Args:
+            motif (Motif): A DNA motif to count. Can include ambiguous bases.
+            pretty_print (bool): Whether to print the counts nicely before
+            returning the counter.
+
+        Returns:
+            (Counter): A subclass of a dictionary. The keys are the motif and
+            the values are the counts for that motif.
+
+        """
+        # todo - write function.
+        pass
 
 class Fast5(object):
     """
@@ -343,12 +373,45 @@ class Fast5(object):
             end index for that motif in the sequence (events['base']).
 
         """
-        if not isinstance(motif, Motif):
-            motif = Motif(motif)
+        motif = Motif(motif)
 
         seq = ''.join(self.events['base'])
         return [m.span(1)
                 for m in re.finditer(r'(?=({}))'.format(motif.regex()), seq)]
+
+    def motif_counts(self, motif, pretty_print=False):
+        """Returns the counts for all possible variations of a given motif.
+
+        Examples:
+            >>> import re
+            >>> from collections import Counter
+            >>> seq = 'GATTGAGTGAGTGAGTGAATGAAT'
+            >>> my_re = re.compile(r'GA[ACGT]T')
+            >>> matches = my_re.findall(seq)
+            >>> Counter(matches)
+            Counter({'GAGT': 3, 'GAAT': 2, 'GATT': 1})
+
+        Args:
+            motif (Motif): A DNA motif to count. Can include ambiguous bases.
+            pretty_print (bool): Whether to print the counts nicely before
+            returning the counter.
+
+        Returns:
+            (Counter): A subclass of a dictionary. The keys are the motif and
+            the values are the counts for that motif.
+
+        """
+        motif = Motif(motif)
+
+        seq = ''.join(self.events['base'])
+        matches = re.findall(r'(?=({}))'.format(motif.regex()), seq)
+
+        counts = Counter(matches)
+
+        if pretty_print:
+            pretty_print_counts(counts)
+
+        return counts
 
     def extract_motif_signal(self, idx):
         """For a given start/end index for a motif, will extract the raw signal
@@ -524,3 +587,29 @@ def _is_list_empty(xs):
         return all(_is_list_empty(x) for x in xs)
     except TypeError:
         return False
+
+def pretty_print_counts(counts):
+    """Prints the given counts nicely, with the most common on top and the
+    least common on the bottom.
+
+    Args:
+        counts (Counter): An instance of a Counter, which is a dictionary of
+        counts for a motif.
+
+    """
+    sorted_counts = counts.most_common()
+    motif_len = len(sorted_counts[0][0])
+    motif_header = 'Motif'
+
+    # add some 'padding' (spaces) to header if motif is long
+    if len(motif_header) < motif_len:
+        motif_header += ' ' * (motif_len - len(motif_header))
+
+    # print header and separator
+    header = '{}    Counts'.format(motif_header)
+    print(header)
+    print('-' * len(header))
+
+    # loop through and print motif and counts
+    for motif, count in sorted_counts:
+        print('{}\t{}'.format(motif, count))

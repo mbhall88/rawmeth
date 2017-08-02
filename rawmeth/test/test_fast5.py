@@ -312,6 +312,19 @@ class TestFast5:
         assert df['length'].sum() == 756
         assert df['base'][50] == 'T'
 
+    def test_fast5_motif_count(self, empty_fast5):
+        """Tests that the motif counting function is working as expected.
+
+        Args:
+            empty_fast5 (Fast5): An empty fast5 file.
+
+        """
+        empty_fast5.events = {'base': list('TCGATATCAGAGATATCTGATA')}
+        motif = Motif('GANAT')
+        counts = empty_fast5.motif_counts(motif)
+        answer = {'GATAT': 2, 'GAGAT': 1}
+        assert counts == answer
+
 
 ############################################################################
 # Sample tests
