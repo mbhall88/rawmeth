@@ -37,6 +37,13 @@ def ch100():
 
 @pytest.fixture
 def ch269():
+    """Loads a test fast5 file that has not been nanoraw corrected, but has
+    been basecalled. This is effectively a corner case.
+
+    Returns:
+        (Fast5): A Fast5 class instance of the file.
+
+    """
     return Fast5('rawmeth/test/data/'
                  'C4_watermang_22032017_75675_ch269_read67_strand.fast5')
 
@@ -102,9 +109,17 @@ class TestMotif:
         """Tests the Motif method for constructing regular expressions.
 
         Args:
-            gwad ():
+            gwad (Motif): GWAD motif
         """
         assert gwad.regex() == 'G[AT]A[^C]'
+
+    def test_motif_length(self, gwad):
+        """Tests the length property is functioning correctly
+
+        Args:
+            gwad (Motif): GWAD motif
+        """
+        assert len(gwad) == 4
 
 ############################################################################
 # Fast5 tests
@@ -175,6 +190,7 @@ class TestFast5:
             ch100 (Fast5): A Fast5 class structure form of the test file
             C4_watermang_22032017_75675_ch100_read38_strand.fast5
             empty_fast5 (Fast5): An empty fast5 file.
+            ch269 (Fast5): A fast5 file that has not been nanoraw corrected.
 
         """
         assert empty_fast5.empty
@@ -296,9 +312,22 @@ class TestFast5:
         assert df['length'].sum() == 756
         assert df['base'][50] == 'T'
 
+    def test_fast5_motif_count(self, empty_fast5):
+        """Tests that the motif counting function is working as expected.
+
+        Args:
+            empty_fast5 (Fast5): An empty fast5 file.
+
+        """
+        empty_fast5.events = {'base': list('TCGATATCAGAGATATCTGATA')}
+        motif = Motif('GANAT')
+        counts = empty_fast5.motif_counts(motif)
+        answer = {'GATAT': 2, 'GAGAT': 1}
+        assert counts == answer
+
 
 ############################################################################
-# Fast5 tests
+# Sample tests
 
 
 class TestSample:
@@ -312,6 +341,16 @@ class TestSample:
         assert len(sample.files) == 2
         assert sample.basename == 'data'
         assert len(sample.file_paths) == 4
+
+    def test_sample_iter(self, sample):
+        """Tests that the iteration functionality is working on the Sample class
+
+        Args:
+            sample (Sample): An instance of a Sample class.
+        """
+        files_true = sample.files
+        files_test = [fast5 for fast5 in sample]
+        assert files_true == files_test
 
     def test_sample_get_motif_signal(self, sample, gatc):
         """Tests that the Sample class correctly extracts the dataframe for
@@ -331,6 +370,27 @@ class TestSample:
 
         Args:
             sample (Sample): An instance of a Sample
+
         """
         sample.name = "s10"
         assert sample.name == "s10"
+
+    def test_sample_size(self, sample):
+        """Tests the size property is functioning correctly.
+
+        Args:
+            sample (Sample): A Sample...
+        """
+        assert sample.size == 2
+
+    def test_sample_index(self, sample):
+        """Tests that indexing on the Sample class is functioning as expected.
+
+        Args:
+            sample (Sample): Instance of a Sample
+
+        """
+        assert sample[0].name == 'C4_watermang_22032017_12981_ch258_' \
+                                 'read1072_strand.fast5'
+        assert sample[1].name == 'C4_watermang_22032017_75675_ch100_' \
+                                 'read38_strand.fast5'

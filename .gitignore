@@ -172,3 +172,9 @@ com_crashlytics_export_strings.xml
 crashlytics.properties
 crashlytics-build.properties
 fabric.properties
+
+# .swp files that get created when plotting in bokeh
+*.swp
+
+# test plot produced when testing line plot
+line_plot_test.html

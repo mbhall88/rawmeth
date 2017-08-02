@@ -6,15 +6,19 @@ This module is designed with the idea of using the dataframes produced to
 plot and explore the raw signal associated with given DNA motifs.
 
 """
-# TODO: methods combining Sample dataframes
 
 from __future__ import print_function
 import re
 import glob
 import os
+import sys
 from itertools import chain
+from collections import Counter
 import h5py as h5
 import pandas as pd
+
+
+LENGTH_FILTER = 100
 
 
 class Motif(str):
@@ -126,7 +130,39 @@ class Sample(object):
             )
 
         # load fast5 files into Fast5 objects
-        self.files = filter(None, map(self._load_f5, self.file_paths))
+        self.files = []
+        num_file_paths = len(self.file_paths)
+
+        for i, filename in enumerate(self.file_paths):
+
+            fast5 = self._load_f5(filename)
+
+            if fast5:
+                self.files.append(fast5)
+
+            perc_complete = float(i) / num_file_paths * 100
+            print('{}% of files loaded for {}'
+                  '        '.format(perc_complete, self.basename), end='\r')
+            sys.stdout.flush()
+
+        print('All files loaded for {}            '.format(self.basename))
+
+    def __getitem__(self, item):
+        """Allows for indexing the Sample object.
+
+        Args:
+            item (int): Index
+
+        Returns:
+            (Fast5): The Fast5 object within self.files list corresponding to
+            the given index.
+
+        """
+        return self.files[item]
+
+    def __iter__(self):
+        """When iterating on Sample object, will iterate over fast5 files."""
+        return iter(self.files)
 
     @staticmethod
     def _load_f5(filename):
@@ -159,6 +195,11 @@ class Sample(object):
         """
         self.basename = name
 
+    @property
+    def size(self):
+        """Returns the number of files in the Sample."""
+        return len(self.files)
+
     def get_motif_signal(self, motifs):
         """Constructs a dataframe of all raw signals for a motif within sample.
 
@@ -189,6 +230,31 @@ class Sample(object):
         master_df['sample'] = self.name
         return master_df
 
+    def motif_counts(self, motif, pretty_print=False):
+        """Returns the counts for all possible variations of a given motif.
+
+        Examples:
+            >>> import re
+            >>> from collections import Counter
+            >>> seq = 'GATTGAGTGAGTGAGTGAATGAAT'
+            >>> my_re = re.compile(r'GA[ACGT]T')
+            >>> matches = my_re.findall(seq)
+            >>> Counter(matches)
+            Counter({'GAGT': 3, 'GAAT': 2, 'GATT': 1})
+
+        Args:
+            motif (Motif): A DNA motif to count. Can include ambiguous bases.
+            pretty_print (bool): Whether to print the counts nicely before
+            returning the counter.
+
+        Returns:
+            (Counter): A subclass of a dictionary. The keys are the motif and
+            the values are the counts for that motif.
+
+        """
+        # todo - write function.
+        # todo - merge feature branch back into develop.
+        pass
 
 class Fast5(object):
     """
@@ -281,7 +347,7 @@ class Fast5(object):
             r'{}/Alignment/genome_alignment$'.format(skel))
         signal_re = re.compile(r'Raw/Reads/Read_\d+/Signal$')
 
-        # TODO: fix this disgusting mess!!!
+        # fixme: fix this disgusting mess!!!
         if signal_re.match(name):
             self.signal = self.file_[name].value
         elif events_re.match(name):
@@ -308,12 +374,45 @@ class Fast5(object):
             end index for that motif in the sequence (events['base']).
 
         """
-        if not isinstance(motif, Motif):
-            motif = Motif(motif)
+        motif = Motif(motif)
 
         seq = ''.join(self.events['base'])
         return [m.span(1)
                 for m in re.finditer(r'(?=({}))'.format(motif.regex()), seq)]
+
+    def motif_counts(self, motif, pretty_print=False):
+        """Returns the counts for all possible variations of a given motif.
+
+        Examples:
+            >>> import re
+            >>> from collections import Counter
+            >>> seq = 'GATTGAGTGAGTGAGTGAATGAAT'
+            >>> my_re = re.compile(r'GA[ACGT]T')
+            >>> matches = my_re.findall(seq)
+            >>> Counter(matches)
+            Counter({'GAGT': 3, 'GAAT': 2, 'GATT': 1})
+
+        Args:
+            motif (Motif): A DNA motif to count. Can include ambiguous bases.
+            pretty_print (bool): Whether to print the counts nicely before
+            returning the counter.
+
+        Returns:
+            (Counter): A subclass of a dictionary. The keys are the motif and
+            the values are the counts for that motif.
+
+        """
+        motif = Motif(motif)
+
+        seq = ''.join(self.events['base'])
+        matches = re.findall(r'(?=({}))'.format(motif.regex()), seq)
+
+        counts = Counter(matches)
+
+        if pretty_print:
+            pretty_print_counts(counts)
+
+        return counts
 
     def extract_motif_signal(self, idx):
         """For a given start/end index for a motif, will extract the raw signal
@@ -321,7 +420,7 @@ class Fast5(object):
 
         Args:
             idx (tuple[int, int]): tuple containing the start and end index
-            within in the raw signal array that the motif maps to. (start, end)
+            within in the raw signal array that the motif maps to. (start, end).
 
         Returns:
             pd.DataFrame: Each row has the raw signal, the base that
@@ -335,11 +434,22 @@ class Fast5(object):
         motif_events = self.events[slice(*idx)]
         for event in motif_events:
             start, length, base = list(event)[2:]
+
+            # todo: make this a little more robust
+            # filter out motifs with events longer than 100
+            if length > LENGTH_FILTER:
+                return pd.DataFrame()
+
             starts.append(start)
             lengths.append(length)
             bases.append(base)
 
         signal_dict = self._extract_raw_signal(starts, lengths, bases)
+
+        # if the dictionay is empty, return an empty dataframe
+        if not signal_dict:
+            return pd.DataFrame()
+
         signal_df = pd.DataFrame.from_dict(signal_dict)
         signal_df['motif'] = ''.join(bases)
         return signal_df
@@ -457,7 +567,7 @@ def flatten_list(xs):
     return list(chain.from_iterable(xs))
 
 
-def is_list_empty(xs):
+def _is_list_empty(xs):
     """Determines if a list is truly empty.
 
     Goes through a given list recursively and checks whether all sequence
@@ -465,7 +575,7 @@ def is_list_empty(xs):
 
     Example:
         xs = [{}, [], set(), '']
-        is_list_empty(xs)  # True
+        _is_list_empty(xs)  # True
 
     Args:
         xs (list): List of anything.
@@ -475,6 +585,32 @@ def is_list_empty(xs):
 
     """
     try:
-        return all(is_list_empty(x) for x in xs)
+        return all(_is_list_empty(x) for x in xs)
     except TypeError:
         return False
+
+def pretty_print_counts(counts):
+    """Prints the given counts nicely, with the most common on top and the
+    least common on the bottom.
+
+    Args:
+        counts (Counter): An instance of a Counter, which is a dictionary of
+        counts for a motif.
+
+    """
+    sorted_counts = counts.most_common()
+    motif_len = len(sorted_counts[0][0])
+    motif_header = 'Motif'
+
+    # add some 'padding' (spaces) to header if motif is long
+    if len(motif_header) < motif_len:
+        motif_header += ' ' * (motif_len - len(motif_header))
+
+    # print header and separator
+    header = '{}    Counts'.format(motif_header)
+    print(header)
+    print('-' * len(header))
+
+    # loop through and print motif and counts
+    for motif, count in sorted_counts:
+        print('{}\t{}'.format(motif, count))
