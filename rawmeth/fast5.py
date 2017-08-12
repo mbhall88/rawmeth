@@ -104,7 +104,7 @@ class Sample(object):
 
     """
 
-    def __init__(self, path, limit=None):
+    def __init__(self, path, limit=None, name=None):
         """Initiates the Sample class from a directory.
 
         Args:
@@ -112,11 +112,13 @@ class Sample(object):
             limit (int): Used if only wanting to load in a certain number of
              files. i.e if you have 100,000 files but just want to explore a
              smaller subset.
+            name (str): Name to designate for the sample. Will default to the
+            name of the directory the files are contained within.
 
         """
         if os.path.isdir(path):
             self.path = os.path.normpath(path)  # remove any trailing '/'
-            self.basename = os.path.basename(self.path)
+            self.basename = name or os.path.basename(self.path)
         else:
             raise Exception(
                 "{} does not exist. Provide a valid directory.".format(path)
@@ -596,6 +598,7 @@ def _is_list_empty(xs):
         return all(_is_list_empty(x) for x in xs)
     except TypeError:
         return False
+
 
 def pretty_print_counts(counts):
     """Prints the given counts nicely, with the most common on top and the
